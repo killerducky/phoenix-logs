@@ -1,9 +1,12 @@
-Tested with **Python 3.5+**
+Tested with **Python 3.7+**
 
 # Logs downloader
 
 Tools to download phoenix replays from tenhou.net. 
 For example these logs can be useful for machine learning exercises.
+
+Forked from MahjongRepository/phoenix-logs
+
 
 This repo contains two main scripts:
 

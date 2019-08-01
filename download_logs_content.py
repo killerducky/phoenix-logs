@@ -10,7 +10,6 @@ from datetime import datetime
 
 import requests
 
-
 class DownloadThread(threading.Thread):
 
     def __init__(self, downloader, results, *args, **kwargs):
@@ -82,7 +81,7 @@ class DownloadLogContent(object):
         binary_content = None
         was_error = False
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0'})
             binary_content = response.content
             # it can be an error page
             if 'mjlog' not in response.text:
@@ -107,6 +106,9 @@ class DownloadLogContent(object):
 
             cursor.execute('UPDATE logs SET is_processed = ?, was_error = ?, log_content = ?, log_hash = ? WHERE log_id = ?;',
                            [1, was_error and 1 or 0, compressed_content, log_hash, log_id])
+
+        if was_error:
+            print('err')
 
     def load_not_processed_logs(self):
         connection = sqlite3.connect(self.db_file)

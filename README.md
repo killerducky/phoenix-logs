@@ -51,6 +51,11 @@ To download games from 1 January (current year) until (current day - 7 days) spe
 
 `python main.py -a id -s`
 
+As of early August 2019, the archive of game IDs for 2018 was still not available. To bypass this problem, use both -s and -y:
+
+`python main.py -a id -s -y 2018`
+
+
 To download just log ids from latest 7 days:
 
 `python main.py -a id`

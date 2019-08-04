@@ -41,7 +41,7 @@ class DownloadGameId(object):
         if not os.path.exists(self.db_file):
             self.set_up_database()
 
-        if self.historical_download:
+        if self.historical_download and not self.from_start:
             records_was_added = self.download_year_archive(self.historical_download)
         else:
             records_was_added = self.download_latest_games_id()
@@ -76,9 +76,11 @@ class DownloadGameId(object):
         response = response.text.replace('list(', '').replace(');', '')
         response = response.split(',\r\n')
 
+        year_string = '{}'.format(self.historical_download)
+
         records_was_added = False
         for archive_name in response:
-            if 'scc' in archive_name:
+            if 'scc' in archive_name and year_string in archive_name:
                 archive_name = archive_name.split("',")[0].replace("{file:'", '')
 
                 file_name = archive_name

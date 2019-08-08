@@ -2,21 +2,19 @@
 
 import bz2
 import math
-from collections import Counter
 import sqlite3
-
+from collections import Counter
+from analysis_utils import convertTile
 from lxml import etree
 
 yakulist=[]
 
-def convertTile(tile):
-    return math.floor(int(tile) / 4)
-
 dora_indication = [
-     1, 2, 3, 4, 5, 6, 7, 8, 0,
-    10,11,12,13,14,15,16,17, 9,
-    19,20,21,22,23,24,25,26,18,
-    28,29,30,27,32,33,31]
+     6, 2, 3, 4, 5, 6, 7, 8, 9, 1,
+    16,12,13,14,15,16,17,18,19,11,
+    26,22,23,24,25,26,27,28,29,21,
+    30,32,33,34,31,36,37,35
+]
 
 def convertDora(tile):
     return dora_indication[convertTile(tile)]

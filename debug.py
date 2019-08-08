@@ -4,7 +4,7 @@ import sqlite3
 from optparse import OptionParser
 from datetime import datetime
 
-db_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'db')
+db_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs')
 
 
 def main():

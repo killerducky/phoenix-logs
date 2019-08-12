@@ -24,14 +24,14 @@ def getRemainingTiles(agari):
     remaining_tiles[30] = 0
 
     current = agari.getprevious()
-    while current.tag != "TAIKYOKU":
+    while current.tag != "INIT":
         match = discard_pattern.match(current.tag)
         if match:
             remaining_tiles[convertTile(match.group(1))] -= 1
     
     return remaining_tiles
 
-with sqlite3.connect('logs/2018.db') as conn:
+with sqlite3.connect('../logs/2018.db') as conn:
     cursor = conn.cursor()
     cursor.execute('SELECT log_content FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
 

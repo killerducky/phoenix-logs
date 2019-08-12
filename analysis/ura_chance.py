@@ -13,7 +13,7 @@ ura_by_unique_tiles = dict()
 for i in range(5, 14):
     ura_by_unique_tiles[i] = Counter()
 
-with sqlite3.connect('logs/2018.db') as conn:
+with sqlite3.connect('../logs/2018.db') as conn:
     cursor = conn.cursor()
     cursor.execute('SELECT log_content FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
 

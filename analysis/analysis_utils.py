@@ -14,8 +14,12 @@ def convertTile(tile):
 def convertHand(hand):
     convertedHand = []
     for i in range(38):
-        convertedHand[i] = hand.count(i)
+        convertedHand.append(hand.count(i))
     return convertedHand
+
+def convertHai(hai):
+    converted = list(map(convertTile, hai.split(',')))
+    return convertHand(converted)
 
 meld_pattern = re.compile("m=\"(\\d+?)\"")
 

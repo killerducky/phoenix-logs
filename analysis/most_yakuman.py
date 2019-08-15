@@ -6,7 +6,7 @@ class MostYakuman(LogCounter):
         wins = log.findall('AGARI')
         count = 0
         for win in wins:
-            if int(win.attrib['ten'].split(',')[2]) == 5:
+            if int(win.attrib['ten'].split(',')[2]) >= 5:
                 count += 1
 
         self.Count(count, log_id)

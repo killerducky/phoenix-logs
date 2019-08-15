@@ -4,11 +4,9 @@ import bz2
 import sqlite3
 from lxml import etree
 from tqdm import tqdm
-from largest_double_ron import LargestDoubleRon
-from end_results import EndResults
-from most_honba import MostHonba
+from call_rate import CallRate
 
-analyzers = [EndResults(), LargestDoubleRon(), MostHonba()]
+analyzers = [CallRate()]
 
 with sqlite3.connect('../logs/2019.db') as conn:
     cursor = conn.cursor()

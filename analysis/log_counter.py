@@ -15,6 +15,9 @@ class LogCounter(LogAnalyzer):
         self.counts[count] += 1
         
     def PrintResults(self):
-        print("%s Count,Occurrences" % self.GetName())
-        for count in self.counts.most_common():
-            print("%s,%d" % count)
+        with open("./results/%s.csv" % self.GetName(), "w") as f:
+            print("%s Count,Occurrences" % self.GetName())
+            f.write("%s Count,Occurrences\n" % self.GetName())
+            for count in self.counts.most_common():
+                print("%s,%d" % count)
+                f.write("%s,%d\n" % count)

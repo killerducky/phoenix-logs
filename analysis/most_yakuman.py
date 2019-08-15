@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from log_counter import LogCounter
+from log_count_and_max import LogCountAndMax
 
-class MostYakuman(LogCounter):
+class MostYakuman(LogCountAndMax):
     def ParseLog(self, log, log_id):
         wins = log.findall('AGARI')
         count = 0

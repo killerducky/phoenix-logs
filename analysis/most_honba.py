@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from log_counter import LogCounter
+from log_count_and_max import LogCountAndMax
 
-class MostHonba(LogCounter):
+class MostHonba(LogCountAndMax):
     def ParseLog(self, log, log_id):
         round_ends = log.findall('AGARI') + log.findall('RYUUKYOKU')
         most = 0

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from collections import Counter
-from log_counter import LogCounter
+from log_count_and_max import LogCountAndMax
 
-class MostDealins(LogCounter):
+class MostDealins(LogCountAndMax):
     def __init__(self):
         super().__init__()
         self.who_counter = Counter()

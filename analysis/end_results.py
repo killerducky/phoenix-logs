@@ -1,42 +1,38 @@
 # -*- coding: utf-8 -*-
 
-import bz2
-import sqlite3
 from collections import Counter
-from lxml import etree
+from log_counter import LogCounter
 
-results = Counter()
-
-with sqlite3.connect('../logs/2018.db') as conn:
-    cursor = conn.cursor()
-    cursor.execute('SELECT log_content FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
-
-    while True:
-        log = cursor.fetchone()
-        if log is None:
-            break
-
-        content = bz2.decompress(log[0])
-        xml = etree.XML(content, etree.XMLParser(recover=True)).getroottree().getroot()
-        wins = xml.findall('AGARI')
+class EndResults(LogCounter):
+    def ParseLog(self, log, log_id):
+        wins = log.findall('AGARI')
+        double_ron = False
 
         for win in wins:
-            results["Total"] += 1
-            if win.attrib['who'] == win.attrib['fromWho']:
-                results["Tsumo"] += 1
-            else:
-                results["Ron"] += 1
-        
-        draws = xml.findall('RYUUKYOKU')
-
-        for draw in draws:
-            results["Total"] += 1
-            if 'type' not in draw.attrib:
-                results["Exhaustive Draw"] += 1
+            if double_ron == True:
+                double_ron == False
                 continue
             
-            results[draw.attrib['type']] += 1
+            self.Count("Rounds")
+            if win.attrib['who'] == win.attrib['fromWho']:
+                self.Count("Tsumo")
+            else:
+                next_element = win.getnext()
+                if next_element is not None and next_element.tag == "AGARI":
+                    self.Count("Double Ron")
+                    double_ron = True
+                else:
+                    self.Count("Ron")
+        
+        draws = log.findall('RYUUKYOKU')
 
-print("Result,Count,Percent")
-for result in results:
-    print("%s,%d,%.2f" % result, results[result], results[result] / results["Total"])
+        for draw in draws:
+            self.Count("Rounds")
+            if 'type' not in draw.attrib:
+                self.Count("Exhaustive Draw")
+                continue
+            
+            self.Count(draw.attrib['type'])
+
+    def GetName(self):
+        return "End Result"

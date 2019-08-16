@@ -16,6 +16,7 @@ class ThirdDragon(LogCounter):
         dragons = [35, 36, 37]
         tenhou_dragons = [124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135]
         discard_tags = ["D", "E", "F", "G"]
+        draw_tags = ["T", "U", "V", "W"]
 
         # First group of tags is irrelevant
         for round_ in rounds[1:]:
@@ -97,6 +98,16 @@ class ThirdDragon(LogCounter):
 
             # Look for third dragon discarded after the second call was made
             for i in range(secondCallIndex + 1, len(round_)):
+                if round_[i].tag == "DORA":
+                    tile = int(round_[i].attrib["hai"])
+                    if tile in tenhou_dragons and tile not in dragons_found:
+                        dragons_discarded += 1
+
+                        if dragons_discarded == 2:
+                            self.Count("Kan Revealed Second of Third Dragon After Two Calls")
+                            break
+                    continue
+
                 first_character = round_[i].tag[0]
                 if first_character in discard_tags:
                     tile = round_[i].tag[1:]
@@ -111,6 +122,18 @@ class ThirdDragon(LogCounter):
                         else:
                             self.Count("Player With Two Dragons Discards Third")
                         break
+
+                if first_character in draw_tags:
+                    tile = round_[i].tag[1:]
+                    try:
+                        tile = int(tile)
+                    except ValueError:
+                        continue
+
+                    if tile in tenhou_dragons and tile not in dragons_found:
+                        if first_character != discard_tags[caller]:
+                            self.Count("Third Dragon Drawn After Two Calls")
+
 
         wins = log.findall("AGARI")
         for win in wins:

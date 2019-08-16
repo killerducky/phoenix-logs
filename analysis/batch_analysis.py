@@ -4,9 +4,9 @@ import bz2
 import sqlite3
 from lxml import etree
 from tqdm import tqdm
-from call_rate import CallRate
+from third_dragon import ThirdDragon
 
-analyzers = [CallRate()]
+analyzers = [ThirdDragon()]
 
 with sqlite3.connect('../logs/2019.db') as conn:
     cursor = conn.cursor()

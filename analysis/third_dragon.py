@@ -61,7 +61,7 @@ class ThirdDragon(LogCounter):
 
             # If the hand was won, we can check the dora to see if it was a dragon
             if "doraHai" in round_[-1].attrib:
-                tile = round_[-1].attrib["doraHai"]
+                tile = int(round_[-1].attrib["doraHai"].split(",")[0])
                 if tile in tenhou_dragons and tile not in dragons_found:
                         dragons_discarded += 1
 
@@ -139,8 +139,6 @@ class ThirdDragon(LogCounter):
                                     if len(call) > 2 and call[0] in dragons:
                                         dragon_calls += 1
 
-                                if(dragon_calls == 3):
-                                    print("%s,%d,%s" % (win.attrib["fromWho"], pao_player, log_id))
                                 self.Count("Daisangen Won Without Pao And %d Call(s) (%d of which dragons)" % (len(calls), dragon_calls))
 
     def GetName(self):

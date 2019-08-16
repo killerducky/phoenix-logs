@@ -27,10 +27,11 @@ class ThirdDragon(LogCounter):
 
             for element in round_:
                 if element.tag == "N":
-                    calledTiles = getTilesFromCall(element)
+                    calledTiles = getTilesFromCall(element.attrib["m"])
+                    # Added kan
                     if len(calledTiles) < 3:
                         continue
-                        
+
                     who = int(element.attrib["who"])
                     if calledTiles[0] in dragons:
                         if caller == -1 or caller == who:
@@ -38,6 +39,7 @@ class ThirdDragon(LogCounter):
                             caller = who
 
                             if calls < 3:
+                                # Build a list of dragons we aren't looking for
                                 for i in range(4):
                                     dragons_found.append((calledTiles[0] - 4) * 4 + i)
 
@@ -46,7 +48,7 @@ class ThirdDragon(LogCounter):
 
                             elif calls == 3:
                                 self.Count("Pao Applied")
-                                pao_player = GetWhoTileWasCalledFrom(element)
+                                pao_player = (who + GetWhoTileWasCalledFrom(element)) % 4
                         else:
                             # Someone else called the second dragon. No need to continue
                             break
@@ -56,13 +58,21 @@ class ThirdDragon(LogCounter):
 
             # Count dragons discarded before the second call was made
             dragons_discarded = 0
-            
+
+            # If the hand was won, we can check the dora to see if it was a dragon
             if "doraHai" in round_[-1].attrib:
                 tile = round_[-1].attrib["doraHai"]
                 if tile in tenhou_dragons and tile not in dragons_found:
                         dragons_discarded += 1
 
             for i in range(1, secondCallIndex):
+                # Someone called kan, see if the new dora is a dragon
+                if round_[i].tag == "DORA":
+                    tile = int(round_[i].attrib["hai"])
+                    if tile in tenhou_dragons and tile not in dragons_found:
+                        dragons_discarded += 1
+                    continue
+
                 first_character = round_[i].tag[0]
                 if first_character in discard_tags:
                     tile = round_[i].tag[1:]
@@ -78,15 +88,11 @@ class ThirdDragon(LogCounter):
                             dragons_discarded = 2
                             self.Count("Player Called Second Dragon After Discarding Third")
                         break
-                
-                if round_[i].tag == "DORA":
-                    tile = int(round_[i].attrib["hai"])
-                    if tile in tenhou_dragons and tile not in dragons_found:
-                        dragons_discarded += 1
-            
+
+            # Daisangen isn't possible
             if dragons_discarded > 1:
                 continue
-            
+
             self.Count("Two Dragons Called With Third Live")
 
             # Look for third dragon discarded after the second call was made
@@ -114,15 +120,28 @@ class ThirdDragon(LogCounter):
                 for index in yakuman:
                     if index == "39":
                         if pao:
-                            self.Count("Pao Invoked")
-                        elif win.attrib["fromWho"] == pao_player:
+                            if win.attrib["who"] == win.attrib["fromWho"]:
+                                self.Count("Pao Invoked via Tsumo")
+                            else:
+                                self.Count("Pao Invoked via Ron")
+                            if win.attrib["paoWho"] == win.attrib["fromWho"]:
+                                self.Count("Player In Pao Dealt In")
+                        elif int(win.attrib["fromWho"]) == pao_player:
                             self.Count("Player In Pao Dealt In")
                         else:
                             if "m" not in win.attrib:
                                 self.Count("Daisangen Won Without Pao And No Calls")
                             else:
-                                calls = len(win.attrib["m"].split(","))
-                                self.Count("Daisangen Won Without Pao And %d Call(s)" % calls)
+                                calls = list(map(getTilesFromCall, win.attrib["m"].split(",")))
+
+                                dragon_calls = 0
+                                for call in calls:
+                                    if len(call) > 2 and call[0] in dragons:
+                                        dragon_calls += 1
+
+                                if(dragon_calls == 3):
+                                    print("%s,%d,%s" % (win.attrib["fromWho"], pao_player, log_id))
+                                self.Count("Daisangen Won Without Pao And %d Call(s) (%d of which dragons)" % (len(calls), dragon_calls))
 
     def GetName(self):
         return "Event"

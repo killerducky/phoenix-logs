@@ -22,7 +22,7 @@ def convertHai(hai):
     return convertHand(converted)
 
 def getTilesFromCall(call):
-    meldInt = int(call.attrib["m"])
+    meldInt = int(call)
     meldBinary = format(meldInt, "016b")
 
     if meldBinary[len(meldBinary) - 3] == '1':
@@ -75,4 +75,4 @@ def getTilesFromCall(call):
 def GetWhoTileWasCalledFrom(call):
     meldInt = int(call.attrib["m"])
     meldBinary = format(meldInt, "016b")
-    return int(meldBinary[-2:])
+    return int(meldBinary[-2:], 2)

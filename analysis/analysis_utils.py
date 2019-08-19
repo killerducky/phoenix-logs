@@ -76,3 +76,14 @@ def GetWhoTileWasCalledFrom(call):
     meldInt = int(call.attrib["m"])
     meldBinary = format(meldInt, "016b")
     return int(meldBinary[-2:], 2)
+
+round_names = [
+    "East 1", "East 2", "East 3", "East 4",
+    "South 1", "South 2", "South 3", "South 4",
+    "West 1", "West 2", "West 3", "West 4",
+    "North 1", "North 2", "North 3", "North 4"
+]
+
+def GetRoundName(init):
+    seed = init.attrib["seed"].split(",")
+    return "%s-%s" % (round_names[int(seed[0])], seed[1])

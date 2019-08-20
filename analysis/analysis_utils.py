@@ -87,3 +87,30 @@ round_names = [
 def GetRoundName(init):
     seed = init.attrib["seed"].split(",")
     return "%s-%s" % (round_names[int(seed[0])], seed[1])
+
+seats_by_oya = [
+    [ "East", "South", "West", "North" ],
+    [ "North", "East", "South", "West" ],
+    [ "West", "North", "East", "South" ],
+    [ "South", "West", "North", "East" ]
+]
+
+def CheckSeat(who, oya):
+    return seats_by_oya[int(oya)][int(who)]
+
+def GetPlacements(ten, starting_oya):
+    points = list(map(int, ten.split(",")))
+    # For tiebreaking
+    points[0] -= (4 - starting_oya) % 4
+    points[1] -= (5 - starting_oya) % 4
+    points[2] -= (6 - starting_oya) % 4
+    points[3] -= (7 - starting_oya) % 4
+    ordered_points = points.copy()
+    ordered_points.sort(reverse=True)
+
+    return [
+        ordered_points.index(points[0]),
+        ordered_points.index(points[1]),
+        ordered_points.index(points[2]),
+        ordered_points.index(points[3])
+    ]

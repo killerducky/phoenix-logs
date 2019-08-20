@@ -1,5 +1,6 @@
 from log_analyzer import LogAnalyzer
 from collections import Counter
+from analysis_utils import GetPlacements
 
 rounds = ["East 1", "East 2", "East 3", "East 4", "South 1", "South 2", "South 3", "South 4", "West 1", "West 2", "West 3", "West 4"]
 
@@ -65,20 +66,3 @@ seats_by_oya = [
 
 def CheckSeat(who, oya):
     return seats_by_oya[oya][who]
-
-def GetPlacements(ten, starting_oya):
-    points = list(map(int, ten.split(",")))
-    # For tiebreaking
-    points[0] -= (4 - starting_oya) % 4
-    points[1] -= (5 - starting_oya) % 4
-    points[2] -= (6 - starting_oya) % 4
-    points[3] -= (7 - starting_oya) % 4
-    ordered_points = points.copy()
-    ordered_points.sort(reverse=True)
-
-    return [
-        ordered_points.index(points[0]),
-        ordered_points.index(points[1]),
-        ordered_points.index(points[2]),
-        ordered_points.index(points[3])
-    ]

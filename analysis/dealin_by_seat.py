@@ -1,4 +1,5 @@
 from log_counter import LogCounter
+from analysis_utils import CheckSeat
 
 class DealinBySeat(LogCounter):
     def ParseLog(self, log, log_id):
@@ -24,13 +25,3 @@ def CheckDoubleRon(element):
         return True
     
     return False
-
-seats_by_oya = [
-    [ "East", "South", "West", "North" ],
-    [ "North", "East", "South", "West" ],
-    [ "West", "North", "East", "South" ],
-    [ "South", "West", "North", "East" ]
-]
-
-def CheckSeat(who, oya):
-    return seats_by_oya[int(oya)][int(who)]

@@ -1,6 +1,11 @@
 from log_counter import LogCounter
 from analysis_utils import CheckIfWinIsClosed, CheckIfWinWasRiichi, convertTile
 
+yakuman_names = [
+    "Tenhou", "Chihou", "Daisangen", "Suuankou", "Suuankou Tanki", "Tsuiisou", "Ryuuiisou", "Chinroutou",
+    "Chuuren", "Pure Chuuren", "Kokushi", "Pure Kokushi", "Daisuushii", "Shousuushii", "Suukantsu"
+]
+
 class RonRateByValue(LogCounter):
     def ParseLog(self, log, log_id):
         wins = log.findall("AGARI")
@@ -13,7 +18,12 @@ class RonRateByValue(LogCounter):
                 riichi = CheckIfWinWasRiichi(win)
             
             if "yakuman" in win.attrib:
-                self.LogResult(tsumo, closed, riichi, "Named Yakuman")
+                yakuman = win.attrib["yakuman"].split(",")
+
+                if len(yakuman) > 1:
+                    self.LogResult(tsumo, closed, riichi, "Multiple Yakuman", "Yakuman ")
+                else:
+                    self.LogResult(tsumo, closed, riichi, yakuman_names[int(yakuman[0]) - 37], "Yakuman ")
             elif "yaku" in win.attrib:
                 yaku = win.attrib["yaku"].split(",")
                 ids = [int(x) for x in yaku[0::2]]
@@ -45,43 +55,25 @@ class RonRateByValue(LogCounter):
                         adjusted_han -= 1
 
                 self.LogResult(tsumo, closed, riichi, "%d Han" % han)
-                self.LogLucklessResult(tsumo, closed, riichi, "%d Han" % adjusted_han)
+                self.LogResult(tsumo, closed, riichi, "%d Han" % adjusted_han, "Luckless ")
 
     def GetName(self):
         return "Win Type By Value"
 
-    def LogResult(self, tsumo, closed, riichi, point):
+    def LogResult(self, tsumo, closed, riichi, point, prefix = ""):
         if tsumo:
             if closed:
                 if riichi:
-                    self.Count("Tsumo Closed Riichi %s" % point)
+                    self.Count("%sTsumo Closed Riichi %s" % (prefix, point))
                 else:
-                    self.Count("Tsumo Closed Dama %s" % point)
+                    self.Count("%sTsumo Closed Dama %s" % (prefix, point))
             else:
-                self.Count("Tsumo Open %s" % point)
+                self.Count("%sTsumo Open %s" % (prefix, point))
         else:
             if closed:
                 if riichi:
-                    self.Count("Ron Closed Riichi %s" % point)
+                    self.Count("%sRon Closed Riichi %s" % (prefix, point))
                 else:
-                    self.Count("Ron Closed Dama %s" % point)
+                    self.Count("%sRon Closed Dama %s" % (prefix, point))
             else:
-                self.Count("Ron Open %s" % point)
-    
-    def LogLucklessResult(self, tsumo, closed, riichi, point):
-        if tsumo:
-            if closed:
-                if riichi:
-                    self.Count("Luckless Tsumo Closed Riichi %s" % point)
-                else:
-                    self.Count("Luckless Tsumo Closed Dama %s" % point)
-            else:
-                self.Count("Luckless Tsumo Open %s" % point)
-        else:
-            if closed:
-                if riichi:
-                    self.Count("Luckless Ron Closed Riichi %s" % point)
-                else:
-                    self.Count("Luckless Ron Closed Dama %s" % point)
-            else:
-                self.Count("Luckless Ron Open %s" % point)
+                self.Count("%sRon Open %s" % (prefix, point))

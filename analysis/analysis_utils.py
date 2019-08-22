@@ -114,3 +114,41 @@ def GetPlacements(ten, starting_oya):
         ordered_points.index(points[2]),
         ordered_points.index(points[3])
     ]
+
+def CheckIfWinIsClosed(agari):
+    if "m" not in agari.attrib:
+        return True
+    
+    calls = agari.attrib["m"].split(",")
+
+    for call in calls:
+        meldInt = int(call)
+        meldBinary = format(meldInt, "016b")
+        last_nums = meldBinary[8:]
+
+        if int(last_nums, 2) != 0:
+            return False
+    
+    return True
+
+def CheckIfWinWasRiichi(agari):
+    if "yaku" in agari.attrib:
+        if "1" in agari.attrib["yaku"].split(",")[0::2]:
+            return True
+        else:
+            return False
+    
+    winner = agari.attrib["who"]
+
+    previous = agari.getprevious()
+
+    while previous is not None:
+        if previous.tag == "INIT":
+            return False
+        
+        if previous.tag == "REACH" and previous.attrib["who"] == winner:
+            return True
+        
+        previous = previous.getprevious()
+    
+    return False

@@ -3,6 +3,11 @@
 from log_counter import LogCounter
 from analysis_utils import getTilesFromCall, GetWhoTileWasCalledFrom
 
+winds = [31, 32, 33, 34]
+tenhou_winds = [108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123]
+discard_tags = ["D", "E", "F", "G"]
+draw_tags = ["T", "U", "V", "W"]
+
 class FourthWind(LogCounter):
     def ParseLog(self, log, log_id):
         rounds = [[]]
@@ -12,11 +17,6 @@ class FourthWind(LogCounter):
                 rounds.append([child])
             else:
                 rounds[-1].append(child)
-
-        winds = [31, 32, 33, 34]
-        tenhou_winds = [108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123]
-        discard_tags = ["D", "E", "F", "G"]
-        draw_tags = ["T", "U", "V", "W"]
 
         # First group of tags is irrelevant
         for round_ in rounds[1:]:

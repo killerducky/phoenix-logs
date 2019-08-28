@@ -114,3 +114,11 @@ def GetPlacements(ten, starting_oya):
         ordered_points.index(points[2]),
         ordered_points.index(points[3])
     ]
+
+def GetNextRealTag(element):
+    next_element = element.getnext()
+
+    while next_element.tag == "UN" or next_element.tag == "BYE":
+        next_element = next_element.getnext()
+    
+    return next_element

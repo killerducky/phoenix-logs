@@ -16,12 +16,11 @@ class EndResults(LogCounter):
             if win.attrib['who'] == win.attrib['fromWho']:
                 self.Count("Tsumo")
             else:
+                self.Count("Ron")
                 next_element = win.getnext()
                 if next_element is not None and next_element.tag == "AGARI":
                     self.Count("Double Ron")
                     double_ron = True
-                else:
-                    self.Count("Ron")
         
         draws = log.findall('RYUUKYOKU')
 

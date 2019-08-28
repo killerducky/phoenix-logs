@@ -1,13 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import math
 from log_counter import LogCounter
 from log_seat_and_placement import LogSeatAndPlacement
-from analysis_utils import getTilesFromCall, GetWhoTileWasCalledFrom, CheckSeat, GetPlacements
+from log_by_round import LogByRound
+from analysis_utils import getTilesFromCall, GetWhoTileWasCalledFrom, CheckSeat, GetPlacements, GetNextRealTag
 
-class ThirdDragon(LogCounter, LogSeatAndPlacement):
+dragons = [35, 36, 37]
+tenhou_dragons = [124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135]
+discard_tags = ["D", "E", "F", "G"]
+draw_tags = ["T", "U", "V", "W"]
+
+class ThirdDragon(LogCounter, LogSeatAndPlacement, LogByRound):
     def __init__(self):
         LogCounter.__init__(self)
         LogSeatAndPlacement.__init__(self)
+        LogByRound.__init__(self)
 
     def ParseLog(self, log, log_id):
         rounds = [[]]
@@ -17,11 +25,6 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                 rounds.append([child])
             else:
                 rounds[-1].append(child)
-
-        dragons = [35, 36, 37]
-        tenhou_dragons = [124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135]
-        discard_tags = ["D", "E", "F", "G"]
-        draw_tags = ["T", "U", "V", "W"]
 
         # First group of tags is irrelevant
         for round_ in rounds[1:]:
@@ -56,6 +59,7 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                                 pao_player = (who + GetWhoTileWasCalledFrom(element)) % 4
                         else:
                             # Someone else called the second dragon. No need to continue
+                            self.Count("Dragons Called By Different Players")
                             break
             
             if calls < 2:
@@ -71,6 +75,9 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
 
             # Count dragons discarded before the second call was made
             dragons_visible = 0
+            riichi_players = []
+            discards = 0
+            calls = 0
 
             # If the hand was won, we can check the dora to see if it was a dragon
             if "doraHai" in round_[-1].attrib:
@@ -85,6 +92,21 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                     if tile in tenhou_dragons and tile not in dragons_found:
                         dragons_visible += 1
                     continue
+                
+                if round_[i].tag == "REACH":
+                    riichi_players.append(int(round_[i].attrib["who"]))
+                    continue
+                
+                if round_[i].tag == "N":
+                    tiles = getTilesFromCall(round_[i].attrib["m"])
+                    if len(tiles) == 1:
+                        continue
+                    if int(round_[i].attrib["who"]) == caller:
+                        calls += 1
+                        if calls > 3:
+                            dragons_visible = 4
+                            self.Count("Opponent Made Four Calls, Only Two Dragons")
+                            break
 
                 first_character = round_[i].tag[0]
 
@@ -105,6 +127,8 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                     except ValueError:
                         continue
 
+                    discards += 1
+
                     if tile in tenhou_dragons and tile not in dragons_found:
                         if first_character != discard_tags[caller]:
                             dragons_visible += 1
@@ -121,6 +145,14 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                 continue
 
             self.Count("Two Dragons Called With Third Live")
+            if len(riichi_players) > 0:
+                self.Count("Riichi Called Before Pao Threat")
+
+            self.Count("Second Call Happened On Turn %d" % math.ceil(discards/4))
+
+            has_logged_riichi = False
+            has_logged_draw = False
+            calls = 2
 
             # Look for third dragon discarded after the second call was made
             for i in range(secondCallIndex + 1, len(round_)):
@@ -133,6 +165,27 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                             self.Count("Kan Revealed Second of Third Dragon After Two Calls")
                             break
                     continue
+
+                if round_[i].tag == "REACH":
+                    if has_logged_riichi == False:
+                        self.Count("Riichi Called After Two Dragon Calls")
+                        has_logged_riichi = True
+                    riichi_players.append(int(round_[i].attrib["who"]))
+                    continue
+
+                if round_[i].tag == "N":
+                    tiles = getTilesFromCall(round_[i].attrib["m"])
+                    if len(tiles) == 1:
+                        continue
+                    tenhou_tile = (tiles[0] - 4) * 4
+                    if tenhou_tile in tenhou_dragons and tenhou_tile not in dragons_found:
+                        self.Count("Closed Kan of Third Dragon Declared")
+                        break
+                    if int(round_[i].attrib["who"]) == caller:
+                        calls += 1
+                        if calls > 3:
+                            self.Count("Opponent Made Two More Calls")
+                            break
 
                 first_character = round_[i].tag[0]
 
@@ -160,11 +213,17 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                                 break
 
                             self.Count("Third Dragon Discarded With Pao Possible And %d Visible" % visible_to_player)
+
+                            if who in riichi_players:
+                                self.Count("Discarded While In Riichi With %d Visible" % visible_to_player)
+
                             self.CountBySeatAndPlacement(
                                 "Third Dragon Discarded With Pao Possible And %d Visible" % visible_to_player,
                                 CheckSeat(who, dealer),
                                 placements[who]
                             )
+
+                            self.CountRound(round_[0])
 
                             if caller == dealer:
                                 self.CountBySeatAndPlacement(
@@ -173,7 +232,7 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                                     placements[who]
                                 )
                             
-                            next_element = round_[i].getnext()
+                            next_element = GetNextRealTag(round_[i])
 
                             if next_element.tag == "AGARI":
                                 if "yakuman" in next_element.attrib:
@@ -193,8 +252,11 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
                                 self.counts["Total Deal-in Value With %d Visible" % visible_to_player] += value
                                 self.Count("Deal-in Counts With %d Visible" % visible_to_player)
 
-                            if next_element.tag == "N" and pao_player > -1:
-                                self.Count("Pao Applied With %d Visible" % visible_to_player)
+                            if next_element.tag == "N":
+                                if pao_player > -1:
+                                    self.Count("Pao Applied With %d Visible" % visible_to_player)
+                                else:
+                                    self.Count("Other Player Called With %d Visible" % visible_to_player)
                         else:
                             self.Count("Player With Two Dragons Discards Third")
                         break
@@ -208,7 +270,9 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
 
                     if tile in tenhou_dragons and tile not in dragons_found:
                         if first_character != discard_tags[caller]:
-                            self.Count("Third Dragon Drawn After Two Calls")
+                            if has_logged_draw == False:
+                                self.Count("Third Dragon Drawn After Two Calls")
+                                has_logged_draw = True
                             who = draw_tags.index(first_character)
                             hands[who].append(tile)
 
@@ -246,3 +310,4 @@ class ThirdDragon(LogCounter, LogSeatAndPlacement):
     def PrintResults(self):
         LogCounter.PrintResults(self)
         LogSeatAndPlacement.PrintResults(self)
+        LogByRound.PrintResults(self)

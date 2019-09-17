@@ -1,6 +1,6 @@
 from log_counter import LogCounter
 from log_seat_and_placement import LogSeatAndPlacement
-from analysis_utils import convertTile, GetPlacements, CheckSeat, convertHai, getTilesFromCall
+from analysis_utils import convertTile, GetPlacements, CheckSeat, convertHai, getTilesFromCall, GetNextRealTag, GetRoundNameWithoutRepeats
 from shanten import calculateMinimumShanten
 import math
 
@@ -33,6 +33,7 @@ class DoraDragon(LogCounter, LogSeatAndPlacement):
                 continue
             
             self.Count("Rounds With Dragon Dora")
+            self.Count("Dora Dragon In %s" % GetRoundNameWithoutRepeats(starts[i]))
             dora = dora_indication[dora_ind]
             hands = []
             for h in range(4):
@@ -41,6 +42,7 @@ class DoraDragon(LogCounter, LogSeatAndPlacement):
             element = starts[i].getnext()
             discards = 0
             last_shanten_logged = [-1, -1, -1, -1]
+            is_in_riichi = [False, False, False, False]
 
             while element is not None:
                 if element.tag == "INIT":
@@ -74,20 +76,19 @@ class DoraDragon(LogCounter, LogSeatAndPlacement):
                         placements = GetPlacements(starts[i].attrib["ten"], dealer)
 
                         turn = math.ceil(discards / 4)
-                        self.Count("Discarded On Turn %d" % turn)
+                        self.Count("Discarded On Turn %d While Riichi %s" % (turn, is_in_riichi[who]))
+                        self.Count("Round Discarded %s" % GetRoundNameWithoutRepeats(starts[i]))
                         self.CountBySeatAndPlacement("First To Discard Dora Dragon", CheckSeat(who, dealer), placements[who])
                         shanten = calculateMinimumShanten(hands[who])
                         self.Count("Discarded At %d-Shanten" % shanten)
 
-                        if shanten < 0:
-                            print(log_id)
-
-                        if element.getnext().tag == "N":
+                        next_element = GetNextRealTag(element)
+                        if next_element.tag == "N":
                             self.Count("Called On Turn %d" % turn)
-                            caller = element.getnext().attrib["who"]
+                            caller = next_element.attrib["who"]
                             if ends[i].attrib["who"] == caller:
                                 self.Count("Ended Up Winning After Turn %d Call" % turn)
-                        if element.getnext().tag == "AGARI":
+                        if next_element.tag == "AGARI":
                             self.Count("Dealt in on Turn %d" % turn)
                         
                         break
@@ -114,6 +115,9 @@ class DoraDragon(LogCounter, LogSeatAndPlacement):
                         hands[who][tiles[0]] = 0
                         # hack to make shanten accurate
                         hands[who][31] += 3
+                elif element.tag == "REACH" and element.attrib["step"] == "2":
+                    who = int(element.attrib["who"])
+                    is_in_riichi[who] = True
                 
                 element = element.getnext()
 

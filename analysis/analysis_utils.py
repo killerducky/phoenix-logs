@@ -88,6 +88,10 @@ def GetRoundName(init):
     seed = init.attrib["seed"].split(",")
     return "%s-%s" % (round_names[int(seed[0])], seed[1])
 
+def GetRoundNameWithoutRepeats(init):
+    seed = init.attrib["seed"].split(",")
+    return round_names[int(seed[0])]
+
 seats_by_oya = [
     [ "East", "South", "West", "North" ],
     [ "North", "East", "South", "West" ],

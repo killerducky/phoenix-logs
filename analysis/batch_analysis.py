@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
+# This script is for running multiple analyses at once,
+# to avoid reading the db and decompressing each log multiple times.
 
 import bz2
 import sqlite3
 from lxml import etree
 from tqdm import tqdm
-from third_dragon import ThirdDragon
+from dora_dragon import DoraDragon
 
-analyzers = [ThirdDragon()]
+analyzers = [DoraDragon()]
 
-with sqlite3.connect('../logs/2019.db') as conn:
+with sqlite3.connect('../logs/es4p.db') as conn:
     cursor = conn.cursor()
-    cursor.execute('SELECT COUNT(*) FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
+    cursor.execute('SELECT COUNT(*) FROM logs')
     rowcount=cursor.fetchone()[0]
-    cursor.execute('SELECT log_content, log_id FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
+    cursor.execute('SELECT log_content, log_id FROM logs')
 
     for i in tqdm(range(rowcount), ncols=80, ascii=True):
         log = cursor.fetchone()

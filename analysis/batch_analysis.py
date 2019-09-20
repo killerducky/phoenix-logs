@@ -6,15 +6,17 @@ import bz2
 import sqlite3
 from lxml import etree
 from tqdm import tqdm
-from dora_dragon import DoraDragon
+from call_rate_by_round import CallRateByRound
+from dealin_rate_by_round import DealInRateByRound
+from value_by_round import ValueByRound
 
-analyzers = [DoraDragon()]
+analyzers = [ValueByRound()]
 
-with sqlite3.connect('../logs/es4p.db') as conn:
+with sqlite3.connect('../logs/2019.db') as conn:
     cursor = conn.cursor()
-    cursor.execute('SELECT COUNT(*) FROM logs')
+    cursor.execute('SELECT COUNT(*) FROM logs WHERE is_tonpusen=1 AND is_hirosima=0')
     rowcount=cursor.fetchone()[0]
-    cursor.execute('SELECT log_content, log_id FROM logs')
+    cursor.execute('SELECT log_content, log_id FROM logs WHERE is_tonpusen=1 AND is_hirosima=0')
 
     for i in tqdm(range(rowcount), ncols=80, ascii=True):
         log = cursor.fetchone()

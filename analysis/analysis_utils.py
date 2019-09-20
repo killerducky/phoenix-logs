@@ -164,3 +164,11 @@ def CheckIfWinWasRiichi(agari):
         previous = previous.getprevious()
     
     return False
+
+def CheckDoubleRon(element):
+    next_element = element.getnext()
+
+    if next_element is not None and next_element.tag == "AGARI":
+        return True
+    
+    return False

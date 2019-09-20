@@ -11,8 +11,8 @@ class LogCounter(LogAnalyzer):
     def GetName(self):
         pass
 
-    def Count(self, count):
-        self.counts[count] += 1
+    def Count(self, count, amount = 1):
+        self.counts[count] += amount
         
     def PrintResults(self):
         with open("./results/%s.csv" % self.GetName(), "w") as f:

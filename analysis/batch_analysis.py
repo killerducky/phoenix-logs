@@ -9,14 +9,16 @@ from tqdm import tqdm
 from call_rate_by_round import CallRateByRound
 from dealin_rate_by_round import DealInRateByRound
 from value_by_round import ValueByRound
+from yaku_by_round import YakuByRound
+from riichi_by_round import RiichiByRound
 
-analyzers = [ValueByRound()]
+analyzers = [RiichiByRound()]
 
 with sqlite3.connect('../logs/2019.db') as conn:
     cursor = conn.cursor()
-    cursor.execute('SELECT COUNT(*) FROM logs WHERE is_tonpusen=1 AND is_hirosima=0')
+    cursor.execute('SELECT COUNT(*) FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
     rowcount=cursor.fetchone()[0]
-    cursor.execute('SELECT log_content, log_id FROM logs WHERE is_tonpusen=1 AND is_hirosima=0')
+    cursor.execute('SELECT log_content, log_id FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
 
     for i in tqdm(range(rowcount), ncols=80, ascii=True):
         log = cursor.fetchone()

@@ -25,7 +25,7 @@ def getTilesFromCall(call):
     meldInt = int(call)
     meldBinary = format(meldInt, "016b")
 
-    if meldBinary[len(meldBinary) - 3] == '1':
+    if meldBinary[-3] == '1':
         # Chii
         tile = meldBinary[0:6]
         tile = int(tile, 2)
@@ -42,7 +42,7 @@ def getTilesFromCall(call):
 
         return [tile + 2, tile, tile + 1]
     
-    elif meldBinary[len(meldBinary) - 4] == '1':
+    elif meldBinary[-4] == '1':
         # Pon
         tile = meldBinary[0:7]
         tile = int(tile, 2)
@@ -51,7 +51,7 @@ def getTilesFromCall(call):
 
         return [tile, tile, tile]
     
-    elif meldBinary[len(meldBinary) - 5] == '1':
+    elif meldBinary[-5] == '1':
         # Added kan
         tile = meldBinary[0:7]
         tile = int(tile, 2)
@@ -60,7 +60,7 @@ def getTilesFromCall(call):
 
         return [tile]
     
-    elif meldBinary[len(meldBinary) - 6] == '1':
+    elif meldBinary[-6] == '1':
         # Nuki
         return [34]
     
@@ -122,7 +122,7 @@ def GetPlacements(ten, starting_oya):
 def GetNextRealTag(element):
     next_element = element.getnext()
 
-    while next_element.tag == "UN" or next_element.tag == "BYE":
+    while next_element is not None and (next_element.tag == "UN" or next_element.tag == "BYE"):
         next_element = next_element.getnext()
     
     return next_element

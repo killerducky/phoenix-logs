@@ -1,4 +1,5 @@
 from log_by_round import LogByRound
+from analysis_utils import GetWhoTileWasCalledFrom, getTilesFromCall
 
 class CallRateByRound(LogByRound):    
     def ParseRound(self, start, end):
@@ -7,7 +8,14 @@ class CallRateByRound(LogByRound):
 
         while current.tag != "AGARI" and current.tag != "RYUUKYOKU":
             if current.tag == "N":
-                flags[int(current.attrib["who"])] = True
+                tiles = getTilesFromCall(current.attrib["m"])
+
+                if len(tiles) == 1:
+                    current = current.getnext()
+                    continue
+
+                if GetWhoTileWasCalledFrom(current) != 0:
+                    flags[int(current.attrib["who"])] = True
             
             current = current.getnext()
         

@@ -11,14 +11,16 @@ from dealin_rate_by_round import DealInRateByRound
 from value_by_round import ValueByRound
 from yaku_by_round import YakuByRound
 from riichi_by_round import RiichiByRound
+from end_results import EndResults
 
-analyzers = [RiichiByRound()]
+analyzers = [CallRateByRound(), DealInRateByRound(), ValueByRound(), YakuByRound(), RiichiByRound(), EndResults()]
+allowed_types = ["169", "225", "185"]
 
-with sqlite3.connect('../logs/2019.db') as conn:
+with sqlite3.connect('../logs/es4p.db') as conn:
     cursor = conn.cursor()
-    cursor.execute('SELECT COUNT(*) FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
+    cursor.execute('SELECT COUNT(*) FROM logs')
     rowcount=cursor.fetchone()[0]
-    cursor.execute('SELECT log_content, log_id FROM logs WHERE is_tonpusen=0 AND is_hirosima=0')
+    cursor.execute('SELECT log_content, log_id FROM logs')
 
     for i in tqdm(range(rowcount), ncols=80, ascii=True):
         log = cursor.fetchone()
@@ -27,8 +29,12 @@ with sqlite3.connect('../logs/2019.db') as conn:
 
         content = bz2.decompress(log[0])
         xml = etree.XML(content, etree.XMLParser(recover=True)).getroottree().getroot()
-        for analyzer in analyzers:
-            analyzer.ParseLog(xml, log[1])
+
+        game_type = xml.find("GO").attrib["type"]
+
+        if game_type in allowed_types:
+            for analyzer in analyzers:
+                analyzer.ParseLog(xml, log[1])
 
 for analyzer in analyzers:
     print("==========")

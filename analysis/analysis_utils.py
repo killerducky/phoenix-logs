@@ -165,6 +165,17 @@ def CheckIfWinWasRiichi(agari):
     
     return False
 
+def CheckIfWinWasDealer(agari):
+    winner = agari.attrib["who"]
+    previous = agari.getprevious()
+
+    while previous is not None:
+        if previous.tag == "INIT":
+            return previous.attrib["oya"] == winner
+        previous = previous.getprevious()
+    
+    return False # ???
+
 def CheckDoubleRon(element):
     next_element = element.getnext()
 

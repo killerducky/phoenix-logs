@@ -10,8 +10,6 @@ yaku_names = [
     "Kokushi", "Kokushi", "Daisuushi", "Shousuushi", "Suukantsu", "Dora", "Uradora", "Akadora"
 ]
 
-unimportant_ids = [0, 1, 2, 3, 4, 5, 6, 52, 53, 54]
-
 class PowerCouples(LogCounter):
     def ParseLog(self, log, log_id):
         wins = log.findall("AGARI")
@@ -22,16 +20,23 @@ class PowerCouples(LogCounter):
 
             yaku = win.attrib['yaku'].split(',')
             ids = [int(x) for x in yaku[0::2]]
-            actual_ids = ids.copy()
+            cnt = [int(x) for x in yaku[1::2]]
 
-            for id_ in ids:
-                if id_ in unimportant_ids:
-                    actual_ids.remove(id_)
+            # Ura is always present on a riichi win, so remove it if it's 0 ura
+            try:
+                ura_position = ids.index(53)
+                if not cnt[ura_position]:
+                    del ids[ura_position]
+            except:
+                pass
             
-            if len(actual_ids) < 2:
-                continue
+            for id_ in ids:
+                self.Count(yaku_names[id_])
 
-            pairs = combinations(actual_ids, 2)
+            if len(ids) < 2:
+                continue
+            
+            pairs = combinations(ids, 2)
 
             for pair in pairs:
                 self.Count("%s + %s" % (yaku_names[pair[0]], yaku_names[pair[1]]))

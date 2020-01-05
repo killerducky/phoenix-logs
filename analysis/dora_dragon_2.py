@@ -32,32 +32,20 @@ class DoraDragon(LogCounter, LogSeatAndPlacement):
             self.Count("Rounds With Dragon Dora")
             self.Count("Dora Dragon In %s" % GetRoundNameWithoutRepeats(starts[i]))
             dora = dora_indication[dora_ind]
-            hands = []
-            for h in range(4):
-                hands.append(convertHai(starts[i].attrib["hai%d" % h]))
 
             element = starts[i].getnext()
-            discards = 0
-            last_shanten_logged = [-1, -1, -1, -1]
             is_in_riichi = [False, False, False, False]
+            discarded = False
+            discards = 0
+            discards_since_first = 0
 
             while element is not None:
                 if element.tag == "INIT":
-                    self.Count("Dora Dragon Never Discarded")
                     break
 
                 first_character = element.tag[0]
 
-                if first_character in draw_tags:
-                    tile = element.tag[1:]
-                    try:
-                        draw = convertTile(tile)
-                        who = draw_tags.index(first_character)
-                        hands[who][draw] += 1
-                    except ValueError:
-                        element = element.getnext()
-                        continue
-                elif first_character in discard_tags:
+                if first_character in discard_tags:
                     tile = element.tag[1:]
                     try:
                         discard = convertTile(tile)
@@ -66,52 +54,40 @@ class DoraDragon(LogCounter, LogSeatAndPlacement):
                         continue
                     
                     discards += 1
+                    discards_since_first += 1
                     who = discard_tags.index(first_character)
 
                     if discard == dora:
-                        dealer = int(starts[i].attrib["oya"])
-                        placements = GetPlacements(starts[i].attrib["ten"], dealer)
+                        if not discarded:
+                            discarded = True
+                            discards_since_first = 0
+                            element = element.getnext()
+                            continue
 
                         turn = math.ceil(discards / 4)
-                        self.Count("Discarded On Turn %d While Riichi %s" % (turn, is_in_riichi[who]))
-                        self.Count("Round Discarded %s" % GetRoundNameWithoutRepeats(starts[i]))
-                        self.CountBySeatAndPlacement("First To Discard Dora Dragon", CheckSeat(who, dealer), placements[who])
-                        shanten = calculateMinimumShanten(hands[who])
-                        self.Count("Discarded At %d-Shanten" % shanten)
+                        turns_since_first = math.ceil(discards_since_first / 4)
+
+                        if is_in_riichi[who] == True:
+                            self.Count("Discarded While In Riichi")
+                        else:
+                            self.Count("Discarded Willingly")
+
+                        self.Count("Discarded Second On Turn %d" % turn)
+                        self.Count("Discarded Second %d Turns After First" % turns_since_first)
 
                         next_element = GetNextRealTag(element)
                         if next_element.tag == "N":
                             self.Count("Called On Turn %d" % turn)
+                            self.Count("Called After %d Turns" % turns_since_first)
                             caller = next_element.attrib["who"]
                             if ends[i].tag == "AGARI" and ends[i].attrib["who"] == caller:
                                 self.Count("Ended Up Winning After Turn %d Call" % turn)
+                                self.Count("Ended Up Winning After Calling Second %d Turns After First" % turns_since_first)
                         if next_element.tag == "AGARI":
-                            self.Count("Dealt in on Turn %d" % turn)
+                            self.Count("Dealt in After %d Turns" % turn)
+                            self.Count("Dealt in %d Turns After First" % turns_since_first)
                         
                         break
-                    else:
-                        hands[who][discard] -= 1
-
-                        if hands[who][dora] == 1:
-                            shanten = calculateMinimumShanten(hands[who], last_shanten_logged[who] - 1)
-                            if last_shanten_logged[who] == -1 or shanten < last_shanten_logged[who]:
-                                self.Count("Lone Dora Dragon Kept At %d-Shanten" % shanten)
-                                last_shanten_logged[who] = shanten
-                elif first_character == "N":
-                    tiles = getTilesFromCall(element.attrib["m"])
-                    tiles_count = len(tiles)
-                    who = int(element.attrib["who"])
-                    if tiles_count == 1:
-                        hands[who][tiles[0]] -= 1
-                    elif tiles_count == 3:
-                        hands[who][tiles[1]] -= 1
-                        hands[who][tiles[2]] -= 1
-                        # hack to make shanten accurate
-                        hands[who][31] += 3
-                    else:
-                        hands[who][tiles[0]] = 0
-                        # hack to make shanten accurate
-                        hands[who][31] += 3
                 elif element.tag == "REACH" and element.attrib["step"] == "2":
                     who = int(element.attrib["who"])
                     is_in_riichi[who] = True

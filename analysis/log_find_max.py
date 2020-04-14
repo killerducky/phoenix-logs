@@ -9,6 +9,7 @@ class LogFindMax(LogAnalyzer):
         if self.highest < new:
             self.highest = new
             self.highest_id = log_id
+            print("Found %d in %s" % (new, log_id))
 
     def PrintResults(self):
         print("Max: %d in replay id %s" % (self.highest, self.highest_id))

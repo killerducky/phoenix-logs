@@ -19,7 +19,8 @@ def convertHand(hand):
 
 def convertHai(hai):
     converted = list(map(convertTile, hai.split(',')))
-    return convertHand(converted)
+    converted.sort()
+    return converted
 
 def getTilesFromCall(call):
     meldInt = int(call)

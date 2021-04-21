@@ -7,8 +7,10 @@ class LogHandAnalyzer(LogAnalyzer):
         self.hands = [[], [], [], []]
         self.calls = [[], [], [], []]
         self.discards = [[], [], [], []]
+        self.last_draw = [50,50,50,50]
         self.end_round = False
-        self.current_log_id
+        self.current_log_id = ""
+        self.ignore_calls = False
 
     def ParseLog(self, log, log_id):
         self.current_log_id = log_id
@@ -25,17 +27,20 @@ class LogHandAnalyzer(LogAnalyzer):
                 elif next_element.tag[0] in discards:
                     who = discards.index(next_element.tag[0])
                     tile = convertTile(next_element.tag[1:])
-                    self.TileDiscarded(who, tile, tile == self.discards[who][-1], next_element)
+                    self.TileDiscarded(who, tile, tile == self.last_draw[who], next_element)
                     
                 elif next_element.tag[0] in draws:
                     who = draws.index(next_element.tag[0])
-                    self.TileDrawn(who, convertTile(next_element.tag[1:]), next_element)
+                    tile = convertTile(next_element.tag[1:])
+                    self.last_draw[who] = tile
+                    self.TileDrawn(who, tile, next_element)
 
                 elif next_element.tag == "N":
-                    self.TileCalled(int(next_element.attrib["who"]), getTilesFromCall(next_element.attrib["m"]), next_element)
+                    if not self.ignore_calls:
+                        self.TileCalled(int(next_element.attrib["who"]), getTilesFromCall(next_element.attrib["m"]), next_element)
                 
                 elif next_element.tag == "REACH":
-                    self.RiichiCalled(int(next_element.tag["who"]), int(next_element.tag["step"]), next_element)
+                    self.RiichiCalled(int(next_element.attrib["who"]), int(next_element.attrib["step"]), next_element)
                 
                 elif next_element.tag == "INIT":
                     self.RoundEnded(round_)

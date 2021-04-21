@@ -15,8 +15,6 @@ class PondTraits(LogHandAnalyzer):
         self.discards_at_riichi = [[],[],[],[]]
         self.counts = defaultdict(Counter)
 
-        self.ignore_calls = True
-
     def RoundStarted(self, init):
         super().RoundStarted(init)
         self.tsumogiri = [0,0,0,0]
@@ -42,6 +40,10 @@ class PondTraits(LogHandAnalyzer):
             if tile in self.discards[i]:
                 first = False
                 break
+            for call in self.calls[i]:
+                if tile in call:
+                    first = False
+                    break
 
         if tile in self.dora:
             first = False

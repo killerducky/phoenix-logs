@@ -75,7 +75,7 @@ class LogHandAnalyzer(LogAnalyzer):
     def TileDrawn(self, who, tile, element):
         self.hands[who][tile] += 1
 
-    def TileCalled(self, who, tiles, meld, element):
+    def TileCalled(self, who, tiles, element):
         length = len(tiles)
         if length == 1:
             self.hands[who][tiles[0]] -= 1

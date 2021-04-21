@@ -6,10 +6,10 @@ import bz2
 import sqlite3
 from lxml import etree
 from tqdm import tqdm
-from overflow import Overflow
-from overflow_tenpais import OverflowTenpais
 
-analyzers = [OverflowTenpais()]
+from pond_traits import PondTraits
+
+analyzers = [PondTraits()]
 allowed_types = ["169", "225", "185"]
 
 with sqlite3.connect('../logs/es4p.db') as conn:

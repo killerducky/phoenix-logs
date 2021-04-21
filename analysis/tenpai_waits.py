@@ -1,3 +1,41 @@
+def calculateWaits(hand, remainingTiles):
+    value = 0
+    tiles = []
+
+    has_manzu = False
+    has_souzu = False
+    has_pinzu = False
+
+    for i in range(10):
+        if hand[i] > 0:
+            has_manzu = True
+        if hand[i+10] > 0:
+            has_pinzu = True
+        if hand[i+20] > 0:
+            has_souzu = True
+
+    # Check adding every tile to see if it improves the shanten
+    for i in range(len(hand)):
+        if i % 10 == 0: continue
+        if i < 10:
+            if not has_manzu: continue
+        elif i < 20:
+            if not has_pinzu: continue
+        elif i < 30:
+            if not has_souzu: continue
+        elif i > 30 and hand[i] == 0: continue
+
+        hand[i] += 1
+
+        if _calculateMinimumShanten(hand, -1) == -1:
+            # Improves shanten. Add the number of remaining tiles to the ukeire count
+            value += remainingTiles[i]
+            tiles.append(i)
+
+        hand[i] -= 1
+
+    return [value, tiles]
+
 hand = []
 completeSets = 0
 pair = 0
@@ -5,7 +43,7 @@ partialSets = 0
 bestShanten = 0
 mininumShanten = 0
 
-def calculateMinimumShanten(handToCheck, mininumShanten = -1):
+def _calculateMinimumShanten(handToCheck, mininumShanten = -1):
     chiitoiShanten = calculateChiitoitsuShanten(handToCheck)
     kokushiShanten = calculateKokushiShanten(handToCheck)
     if chiitoiShanten == -1 or kokushiShanten == -1:
@@ -131,7 +169,7 @@ def removePotentialSets(i):
     global bestShanten
 
     if bestShanten <= mininumShanten: return
-    if completeSets < 2: return
+    if completeSets < 3: return
 
     # Skip to the next tile that exists in the hand
     while i < len(hand) and hand[i] == 0: i += 1

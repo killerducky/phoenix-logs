@@ -8,6 +8,10 @@ tenhou_tile_to_array_index_lookup = [
     31, 32, 33, 34, 35, 36, 37
 ]
 
+discards = ['D', 'E', 'F', 'G']
+draws = ['T', 'U', 'V', 'W']
+suit_characters = ['m', 'p', 's', 'z']
+
 def convertTile(tile):
     return tenhou_tile_to_array_index_lookup[math.floor(int(tile) / 4)]
 
@@ -17,10 +21,31 @@ def convertHand(hand):
         convertedHand.append(hand.count(i))
     return convertedHand
 
+def convertHandToTenhouString(hand):
+    handString = ""
+    valuesInSuit = ""
+
+    for suit in range(4):
+        for i in range(suit * 10 + 1, suit * 10 + 10):
+            if i > 37: continue
+            value = i % 10
+
+            if value == 5 and hand[i - 5] > 0:
+                for j in range(hand[i - 5]):
+                    valuesInSuit += 0
+
+            for j in range(hand[i]):
+                valuesInSuit += str(value)
+
+        if valuesInSuit != "":
+            handString += valuesInSuit + suit_characters[suit]
+            valuesInSuit = ""
+
+    return handString
+
 def convertHai(hai):
     converted = list(map(convertTile, hai.split(',')))
-    converted.sort()
-    return converted
+    return convertHand(converted)
 
 def getTilesFromCall(call):
     meldInt = int(call)
@@ -81,8 +106,7 @@ def GetWhoTileWasCalledFrom(call):
 round_names = [
     "East 1", "East 2", "East 3", "East 4",
     "South 1", "South 2", "South 3", "South 4",
-    "West 1", "West 2", "West 3", "West 4",
-    "North 1", "North 2", "North 3", "North 4"
+    "West 1", "West 2", "West 3", "West 4"
 ]
 
 def GetRoundName(init):
@@ -127,17 +151,25 @@ def GetNextRealTag(element):
         next_element = next_element.getnext()
     
     return next_element
+
+def GetPreviousRealTag(element):
+    next_element = element.getprevious()
+
+    while next_element is not None and (next_element.tag == "UN" or next_element.tag == "BYE"):
+        next_element = next_element.getprevious()
+    
+    return next_element
     
 def CheckIfWinIsClosed(agari):
     if "m" not in agari.attrib:
         return True
-    
+
     calls = agari.attrib["m"].split(",")
 
     for call in calls:
         meldInt = int(call)
         meldBinary = format(meldInt, "016b")
-        last_nums = meldBinary[8:]
+        last_nums = meldBinary[-2:]
 
         if int(last_nums, 2) != 0:
             return False
@@ -146,7 +178,8 @@ def CheckIfWinIsClosed(agari):
 
 def CheckIfWinWasRiichi(agari):
     if "yaku" in agari.attrib:
-        if "1" in agari.attrib["yaku"].split(",")[0::2]:
+        yaku = agari.attrib["yaku"].split(",")[0::2]
+        if "1" in yaku or "21" in yaku:
             return True
         else:
             return False
@@ -184,3 +217,11 @@ def CheckDoubleRon(element):
         return True
     
     return False
+
+def GetStartingHands(init):
+    hands = []
+    for i in range(4):
+        hai = "hai%d" % i
+        if hai in init.attrib:
+            hands.append(convertHai(init.attrib[hai]))
+    return hands

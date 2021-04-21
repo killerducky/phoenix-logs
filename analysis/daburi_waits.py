@@ -3,7 +3,7 @@
 from log_counter import LogCounter
 from ukeire import calculateUkeire
 from shanten import calculateMinimumShanten
-from analysis_utils import convertHai, convertTile
+from analysis_utils import convertHai, convertTile, GetNextRealTag, GetPreviousRealTag
 
 discard_tags = ["D", "E", "F", "G"]
 tile_names = [
@@ -35,7 +35,7 @@ class DaburiWaits(LogCounter):
                 
                 first_character = next_element.tag[0]
 
-                if next_element.tag != "GO" and first_character in discard_tags:
+                if next_element.tag != "GO" and next_element.tag != "DORA" and first_character in discard_tags:
                     discards += 1
                 
                 if discards > 3:
@@ -47,24 +47,19 @@ class DaburiWaits(LogCounter):
                     who = int(next_element.attrib["who"])
                     hand = convertHai(init.attrib["hai%d" % who])
 
-                    draw_element = next_element.getprevious()
-                    while draw_element.tag == "BYE":
-                        draw_element = draw_element.getprevious()
-
+                    draw_element = GetPreviousRealTag(next_element)
                     draw = convertTile(draw_element.tag[1:])
                     hand[draw] += 1
 
-                    discard_element = next_element.getnext()
-                    while discard_element.tag == "BYE":
-                        discard_element = discard_element.getnext()
+                    remaining_tiles = [4]*38
+                    for i in range(38):
+                        remaining_tiles[i] -= hand[i]
 
+                    discard_element = GetNextRealTag(next_element)
                     discard = convertTile(discard_element.tag[1:])
                     hand[discard] -= 1
 
-                    ukeire = calculateUkeire(hand, [4] * 38, calculateMinimumShanten)
-
-                    for tile in ukeire[1]:
-                        self.Count(tile_names[tile])
+                    ukeire = calculateUkeire(hand, remaining_tiles, calculateMinimumShanten, 0)
                     
                     self.Count("Waiting on %d tiles" % ukeire[0])
                     break

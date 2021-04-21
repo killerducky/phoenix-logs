@@ -3,6 +3,8 @@ from collections import Counter, defaultdict
 from analysis_utils import GetWhoTileWasCalledFrom
 from urllib.parse import unquote
 
+NUM_PLAYERS = 4
+
 class HououPlayers(LogAnalyzer):
     def __init__(self):
         self.player_data = defaultdict(Counter)
@@ -13,7 +15,7 @@ class HououPlayers(LogAnalyzer):
         data = log.find("UN")
         genders = data.attrib["sx"].split(",")
 
-        for i in range(4):
+        for i in range(NUM_PLAYERS):
             names[i] = unquote(data.attrib["n%d" % i])
             self.player_data[names[i]]["games"] += 1
             
@@ -30,10 +32,10 @@ class HououPlayers(LogAnalyzer):
                 if GetWhoTileWasCalledFrom(next_element) != 0:
                     has_called[int(next_element.attrib["who"])] = True
             
-            if next_element.tag == "REACH":
+            elif next_element.tag == "REACH":
                 has_riichi[int(next_element.attrib["who"])] = True
             
-            if next_element.tag == "AGARI":
+            elif next_element.tag == "AGARI":
                 who = int(next_element.attrib["who"])
                 fromWho = int(next_element.attrib["fromWho"])
 
@@ -48,8 +50,8 @@ class HououPlayers(LogAnalyzer):
                 if int(next_element.attrib['ten'].split(',')[2]) >= 5:
                     self.player_data[names[who]]["yakuman"] += 1
             
-            if next_element.tag == "INIT":
-                for i in range(4):
+            elif next_element.tag == "INIT":
+                for i in range(NUM_PLAYERS):
                     if has_called[i]:
                         self.player_data[names[i]]["opened"] += 1
                         has_called[i] = False
@@ -61,12 +63,11 @@ class HououPlayers(LogAnalyzer):
             next_element = next_element.getnext()
         
         # The final round isn't followed by an init so we do this again
-        for i in range(4):
+        for i in range(NUM_PLAYERS):
             if has_called[i]:
                 self.player_data[names[i]]["opened"] += 1
             if has_riichi[i]:
                 self.player_data[names[i]]["riichi"] += 1
-            self.player_data[names[i]]["rounds"] += 1
     
     def PrintResults(self):
         print("Name,Games,Rounds,Opened,Dealt In,Won,Riichi,Ron,Total Value,Yakuman,Male")
@@ -75,6 +76,8 @@ class HououPlayers(LogAnalyzer):
             f.write("Name,Games,Rounds,Opened,Dealt In,Won,Riichi,Ron,Total Value,Yakuman,Male\n")
 
             for player in self.player_data:
+                if self.player_data[player]["games"] < 100:
+                    continue
                 print("%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % (
                     player,
                     self.player_data[player]["games"],

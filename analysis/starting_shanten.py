@@ -42,7 +42,7 @@ with sqlite3.connect('../logs/2019.db') as conn:
                     if name[0] == draws[i]:
                         hand[convertTile(name[1:])] += 1
                         break
-                    if name == "AGARI" or name == "RYUUKYOKU" or name == "INIT":
+                    if name == "AGARI" or name == "RYUUKYOKU" or name == "INIT" or name == "N":
                         round_ended = True
                         break
                     next_element = next_element.getnext()

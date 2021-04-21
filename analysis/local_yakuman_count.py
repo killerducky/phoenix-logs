@@ -11,6 +11,7 @@ class LocalYakumanCount(LogCounter):
             # Daichisei
             if "yakuman" in win.attrib:
                 if "42" in win.attrib["yakuman"].split(",") and "m" not in win.attrib:
+                    print(log_id)
                     hand = convertHai(win.attrib["hai"])
                     daichisei = True
                     for i in hand:
@@ -19,6 +20,7 @@ class LocalYakumanCount(LogCounter):
                     
                     if daichisei:
                         self.Count("Daichisei")
+                        print(log_id)
             
             # Three years on the stone
             if "yaku" in win.attrib:

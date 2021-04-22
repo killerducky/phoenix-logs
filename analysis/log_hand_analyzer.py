@@ -14,49 +14,55 @@ class LogHandAnalyzer(LogAnalyzer):
 
     def ParseLog(self, log, log_id):
         self.current_log_id = log_id
-        rounds = log.findall("INIT")
 
-        for round_ in rounds:
+        for round_ in log.iter("INIT"):
             self.RoundStarted(round_)
-            next_element = GetNextRealTag(round_)
 
-            while next_element is not None and self.end_round == False:
-                if next_element.tag == "DORA":
-                    self.DoraRevealed(next_element.attrib["hai"], next_element)
+            for element in round_.itersiblings():
+                if self.end_round: break
 
-                elif next_element.tag[0] in discards:
-                    who = discards.index(next_element.tag[0])
-                    tile = convertTile(next_element.tag[1:])
-                    self.TileDiscarded(who, tile, tile == self.last_draw[who], next_element)
+                if element.tag == "DORA":
+                    self.DoraRevealed(element.attrib["hai"], element)
+
+                elif element.tag[0] in discards:
+                    who = ord(element.tag[0]) - 68
+                    tile = convertTile(element.tag[1:])
+                    self.TileDiscarded(who, tile, tile == self.last_draw[who], element)
+
+                elif element.tag == "UN":
+                    self.Reconnection(element)
                     
-                elif next_element.tag[0] in draws:
-                    who = draws.index(next_element.tag[0])
-                    tile = convertTile(next_element.tag[1:])
+                elif element.tag[0] in draws:
+                    who = ord(element.tag[0]) - 84
+                    tile = convertTile(element.tag[1:])
                     self.last_draw[who] = tile
-                    self.TileDrawn(who, tile, next_element)
+                    self.TileDrawn(who, tile, element)
 
-                elif next_element.tag == "N":
+                elif element.tag == "N":
                     if not self.ignore_calls:
-                        self.TileCalled(int(next_element.attrib["who"]), getTilesFromCall(next_element.attrib["m"]), next_element)
+                        self.TileCalled(int(element.attrib["who"]), getTilesFromCall(element.attrib["m"]), element)
                 
-                elif next_element.tag == "REACH":
-                    self.RiichiCalled(int(next_element.attrib["who"]), int(next_element.attrib["step"]), next_element)
+                elif element.tag == "REACH":
+                    self.RiichiCalled(int(element.attrib["who"]), int(element.attrib["step"]), element)
                 
-                elif next_element.tag == "INIT":
-                    self.RoundEnded(round_)
+                elif element.tag == "INIT":
                     break
 
-                elif next_element.tag == "AGARI":
-                    self.Win(next_element)
+                elif element.tag == "AGARI":
+                    self.Win(element)
+                    break
                 
-                elif next_element.tag == "RYUUKYOKU":
-                    if "type" in next_element.attrib:
-                        self.AbortiveDraw(next_element)
+                elif element.tag == "RYUUKYOKU":
+                    if "type" in element.attrib:
+                        self.AbortiveDraw(element)
                     else:
-                        self.ExhaustiveDraw(next_element)
+                        self.ExhaustiveDraw(element)
+                    break
 
-                next_element = GetNextRealTag(next_element)
-        
+                elif element.tag == "BYE":
+                    self.Disconnection(element)
+
+            self.RoundEnded(round_)
         self.ReplayComplete()
     
     def RoundStarted(self, init):
@@ -102,6 +108,12 @@ class LogHandAnalyzer(LogAnalyzer):
         pass
 
     def ReplayComplete(self):
+        pass
+
+    def Disconnection(self, element):
+        pass
+
+    def Reconnection(self, element):
         pass
     
     @abstractmethod

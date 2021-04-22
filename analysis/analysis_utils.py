@@ -1,11 +1,21 @@
 import math
 import re
+from collections import Counter
 
 tenhou_tile_to_array_index_lookup = [
-     1,  2,  3,  4,  5,  6,  7,  8,  9,
-    11, 12, 13, 14, 15, 16, 17, 18, 19,
-    21, 22, 23, 24, 25, 26, 27, 28, 29,
-    31, 32, 33, 34, 35, 36, 37
+    1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,
+    11,11,11,11,12,12,12,12,13,13,13,13,14,14,14,14,15,15,15,15,16,16,16,16,17,17,17,17,18,18,18,18,19,19,19,19,
+    21,21,21,21,22,22,22,22,23,23,23,23,24,24,24,24,25,25,25,25,26,26,26,26,27,27,27,27,28,28,28,28,29,29,29,29,
+    31,31,31,31,32,32,32,32,33,33,33,33,34,34,34,34,35,35,35,35,36,36,36,36,37,37,37,37
+]
+
+yaku_names = [
+    "Tsumo", "Riichi", "Ippatsu", "Chankan", "Rinshan", "Haitei", "Houtei", "Pinfu", "Tanyao", "Iipeikou",
+    "Yakuhai Wind", "Yakuhai Wind", "Yakuhai Wind", "Yakuhai Wind", "Yakuhai Wind", "Yakuhai Wind", "Yakuhai Wind", "Yakuhai Wind",
+    "Yakuhai Dragon", "Yakuhai Dragon", "Yakuhai Dragon", "Double Riichi", "Chiitoitsu", "Chanta", "Itsu", "Doujun", "Doukou",
+    "Sankantsu", "Toitoi", "Sanankou", "Shousangen", "Honroutou", "Ryanpeikou", "Junchan", "Honitsu", "Chinitsu",
+    "Renhou", "Tenhou", "Chihou", "Daisangen", "Suuankou", "Suuankou", "Tsuuiisou", "Ryuuiisou", "Chinroutou", "Chuuren", "Chuuren",
+    "Kokushi", "Kokushi", "Daisuushi", "Shousuushi", "Suukantsu", "Dora", "Uradora", "Akadora"
 ]
 
 discards = ['D', 'E', 'F', 'G']
@@ -13,13 +23,10 @@ draws = ['T', 'U', 'V', 'W']
 suit_characters = ['m', 'p', 's', 'z']
 
 def convertTile(tile):
-    return tenhou_tile_to_array_index_lookup[math.floor(int(tile) / 4)]
+    return tenhou_tile_to_array_index_lookup[int(tile)]
 
 def convertHand(hand):
-    convertedHand = []
-    for i in range(38):
-        convertedHand.append(hand.count(i))
-    return convertedHand
+    return Counter(hand)
 
 def convertHandToTenhouString(hand):
     handString = ""
@@ -56,8 +63,8 @@ def getTilesFromCall(call):
         tile = meldBinary[0:6]
         tile = int(tile, 2)
         order = tile % 3
-        tile = math.floor(tile / 3)
-        tile = 9 * math.floor(tile / 7) + (tile % 7)
+        tile = tile // 3
+        tile = 9 * (tile // 7) + (tile % 7)
         tile = convertTile(tile * 4)
 
         if order == 0:
@@ -72,7 +79,7 @@ def getTilesFromCall(call):
         # Pon
         tile = meldBinary[0:7]
         tile = int(tile, 2)
-        tile = math.floor(tile / 3)
+        tile = tile // 3
         tile = convertTile(tile * 4)
 
         return [tile, tile, tile]
@@ -81,7 +88,7 @@ def getTilesFromCall(call):
         # Added kan
         tile = meldBinary[0:7]
         tile = int(tile, 2)
-        tile = math.floor(tile / 3)
+        tile = tile // 3
         tile = convertTile(tile * 4)
 
         return [tile]
@@ -94,7 +101,7 @@ def getTilesFromCall(call):
         # Kan
         tile = meldBinary[0:8]
         tile = int(tile, 2)
-        tile = math.floor(tile / 4)
+        tile = tile // 4
         tile = convertTile(tile * 4)
         return [tile, tile, tile, tile]
 
@@ -211,17 +218,25 @@ def CheckIfWinWasDealer(agari):
     return False # ???
 
 def CheckDoubleRon(element):
-    next_element = element.getnext()
+    next_element = GetNextRealTag(element)
 
     if next_element is not None and next_element.tag == "AGARI":
         return True
     
     return False
 
-def GetStartingHands(init):
+def GetStartingHands(init, players = 4):
     hands = []
-    for i in range(4):
-        hai = "hai%d" % i
-        if hai in init.attrib:
-            hands.append(convertHai(init.attrib[hai]))
+    for i in range(players):
+        hands.append(convertHai(init.attrib["hai%d" % i]))
     return hands
+
+dora_indication = [
+     6, 2, 3, 4, 5, 6, 7, 8, 9, 1,
+    16,12,13,14,15,16,17,18,19,11,
+    26,22,23,24,25,26,27,28,29,21,
+    30,32,33,34,31,36,37,35
+]
+
+def GetDora(indicator):
+    return dora_indication[indicator]

@@ -1,4 +1,5 @@
 def calculateUkeire(hand, remainingTiles, shantenFunction, baseShanten = -2):
+    hand = hand.copy()
     if baseShanten == -2:
         baseShanten = shantenFunction(hand)
 

@@ -1,6 +1,8 @@
 from log_hand_analyzer import LogHandAnalyzer
-from analysis_utils import GetDora, convertTile, yaku_names
+from analysis_utils import GetDora, convertTile, yaku_names, convertHandToTenhouString
 from collections import defaultdict, Counter
+from ukeire import calculateUkeire
+from shanten import calculateMinimumShanten
 
 terminal_tiles = [1,9,11,19,21,29]
 two_eight_tiles = [2,8,12,18,22,28]
@@ -58,7 +60,13 @@ class PondTraits(LogHandAnalyzer):
 
     def RiichiCalled(self, who, step, element):
         super().RiichiCalled(who, step, element)
-        if step == 2: return
+
+        if step == 2: 
+            # TODO: Figure out why this is broken without hacking ukeire.py!
+            print('test1', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
+            print('test2', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
+            print('test3', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
+            return
 
         self.discards_at_riichi[who] = self.discards[who].copy()
 

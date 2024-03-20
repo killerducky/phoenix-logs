@@ -112,22 +112,24 @@ def combo2str(key, combos):
 class WaitEstimator(LogHandAnalyzer):
     def __init__(self):
         super().__init__()
+        self.counts = defaultdict(Counter)
+        self.uniq_rounds = set()
+
+    def RoundStarted(self, init):
+        super().RoundStarted(init)
+        round_key = f'{self.current_log_id} {init.attrib["seed"]}'
+        print('current round: ', round_key)
+        if round_key in self.uniq_rounds:
+            print('duplicate round: ', round_key)
+        else:
+            self.uniq_rounds.add(round_key)
         self.tsumogiri = [0,0,0,0]
         self.first_discards = [0,0,0,0]
-        self.dora = []
         self.dora_discarded = [0,0,0,0]
         self.discards_at_riichi = [[],[],[],[]]
         self.riichi_ukeire= [[],[],[],[]]
         self.genbutsu=[set(), set(), set(), set()]
-        self.counts = defaultdict(Counter)
-
-    def RoundStarted(self, init):
-        super().RoundStarted(init)
-        self.tsumogiri = [0,0,0,0]
-        self.first_discards = [0,0,0,0]
-        self.dora_discarded = [0,0,0,0]
-        self.discards_at_riichi = [[],[],[],[]]
-        self.riichi_ukeire= [[],[],[],[]]
+        self.init = init
         self.dora = [GetDora(convertTile(init.attrib["seed"].split(",")[5]))]
 
     def DoraRevealed(self, hai, element):
@@ -176,12 +178,15 @@ class WaitEstimator(LogHandAnalyzer):
                         seen[t] += 1
             # Note: calcCombos before adding this discard to genbutsu
             combos = calcCombos(self.genbutsu[riichiPidx], seen)
-            print(convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
-            print('len', len(combos))
-            for k in sorted(combos, key=lambda x: 0 if x=='all' else x):
-                if k == 'all': continue
-                print(combo2str(k, combos))
-            print()
+            debug = True
+            # debug = False
+            if debug:
+                print(convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
+                print('len', len(combos))
+                for k in sorted(combos, key=lambda x: 0 if x=='all' else x):
+                    if k == 'all': continue
+                    print(combo2str(k, combos))
+                print()
             self.genbutsu[riichiPidx].add(tile) # Assuming this passes, add to genbutsu set for riichiPidx player
 
         super().TileDiscarded(who, tile, tsumogiri, element)
@@ -193,14 +198,15 @@ class WaitEstimator(LogHandAnalyzer):
             return
         # TODO: [4] * 40? not quite right
         [value, tiles] = calculateUkeire(self.hands[who], [4] * 40, calculateMinimumShanten)
-        print(tiles)
+        # print(tiles)
         self.riichi_ukeire[who] = tiles
         for t in tiles:
             if t in self.genbutsu[who]:
-                print('furiten riichi')
+                print('furiten riichi', step, who, tiles, convertHandToTenhouString(self.hands[who]), self.init.attrib['seed'], self.current_log_id)
+                break
         if self.calls[who] != []:
             print("TODO: ankan", self.calls[who])
-        print()
+        # print()
 
     def TileCalled(self, who, tiles, element):
         # TODO: Kakan can be Roned. If it isn't, add to genbutsu

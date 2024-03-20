@@ -1,4 +1,6 @@
 def calculateUkeire(hand, remainingTiles, shantenFunction, baseShanten = -2):
+    for i in range(39):
+        hand[i] = hand[i]
     if baseShanten == -2:
         baseShanten = shantenFunction(hand)
 

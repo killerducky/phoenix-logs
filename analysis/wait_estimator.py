@@ -63,9 +63,9 @@ class WaitEstimator(LogHandAnalyzer):
         if step == 1:
             self.discards_at_riichi[who] = self.discards[who].copy()
             return
-        print('aa', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
-        print('aa', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
-        print('aa', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
+        print('test1', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
+        print('test2', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
+        print('test3', convertHandToTenhouString(self.hands[who]), calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten))
         [value, tiles] = calculateUkeire(self.hands[who], [4] * 38, calculateMinimumShanten)
         if self.calls[who] != []:
             print("TODO: ankan", self.calls[who])

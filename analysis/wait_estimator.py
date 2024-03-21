@@ -4,6 +4,8 @@ from collections import defaultdict, Counter
 from ukeire import calculateUkeire
 from shanten import calculateMinimumShanten
 import math
+import sys
+import random
 
 GS_C_ccw_ryanmen = 3
 GS_C_ccw_honorTankiShanpon = 2
@@ -113,6 +115,36 @@ def combo2str(key, combos):
         return f"{k} 0.0 all waits impossible!"
     return f"{k} {keyCombo['all']/combos['all']*100:.1f}"
 
+def entropy_test(actual_prob, predicted_prob):
+    N = 1000
+    sum_entropy = 0
+    sum_happened = 0
+    for i in range(N):
+        #if random.random() < actual_prob:
+        if i/N < actual_prob:
+            # It happened
+            q_x = predicted_prob
+            sum_happened += 1
+        else:
+            # It didn't happen
+            q_x = 1-predicted_prob
+        entropy = -math.log2(q_x)
+        sum_entropy += entropy
+    print(f'{actual_prob} {predicted_prob:.2f} {sum_entropy/N:.3f} {sum_happened}')
+
+def entropy_tests():
+    print(f'act pred ent sum_happened')
+    entropy_test(.5, .1)
+    entropy_test(.5, .5)
+    entropy_test(.5, .9)
+    entropy_test(.9, .1)
+    entropy_test(.9, .5)
+    entropy_test(.9, .85)
+    entropy_test(.9, .9)
+    entropy_test(.9, .95)
+    sys.exit()
+# entropy_tests()
+
 class WaitEstimator(LogHandAnalyzer):
     def __init__(self):
         super().__init__()
@@ -120,6 +152,7 @@ class WaitEstimator(LogHandAnalyzer):
         self.entropy_sum = 0
         self.entropy_cnt = 0
         self.uniq_rounds = set()
+        random.seed(1)
 
     def RoundStarted(self, init):
         super().RoundStarted(init)
@@ -140,6 +173,15 @@ class WaitEstimator(LogHandAnalyzer):
         self.init = init
         self.dora_indicator = [convertTile(init.attrib["seed"].split(",")[5])]
         self.dora = [GetDora(self.dora_indicator[0])]
+        self.round_entropy_sums = []
+
+    def RoundEnded(self, init):
+        super().RoundEnded(init)
+        if len(self.round_entropy_sums):
+            picked_entropy_idx = random.randint(0, len(self.round_entropy_sums)-1)
+            picked_entropy_sum = self.round_entropy_sums[picked_entropy_idx]
+            self.entropy_cnt += 34 # 34 tiles
+            self.entropy_sum += picked_entropy_sum
 
     def DoraRevealed(self, hai, element):
         super().DoraRevealed(hai, element)
@@ -150,6 +192,7 @@ class WaitEstimator(LogHandAnalyzer):
         super().TileDiscarded(who, tile, tsumogiri, element)
 
         for riichiPidx in range(4):
+            # Note: Skipping furiten cases
             if not self.riichi_ukeire[riichiPidx] or riichiPidx == who or self.furiten_riichi[riichiPidx]:
                 continue
             seen = Counter(self.hands[who])
@@ -167,8 +210,9 @@ class WaitEstimator(LogHandAnalyzer):
             debug = True
             debug = False
             if debug: print('tenpai hand:', convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
+            this_entropy_sum = 0
             for tmpTile in range(38):
-                if tmpTile == 'all': continue
+                if tmpTile%10 == 0: continue
                 # print(combo2str(tmpTile, combos), 1 if tmpTile in self.riichi_ukeire[riichiPidx] else 0)
                 q_x = 0 if tmpTile not in combos else combos[tmpTile]['all']/combos['all']
                 if not tmpTile in self.riichi_ukeire[riichiPidx]:
@@ -183,8 +227,8 @@ class WaitEstimator(LogHandAnalyzer):
                         print(f'  tmpTile, q, entropy {tmpTile} {q_x:.3f} {entropy:.1f}')
                     else:
                         print(f'o tmpTile, q, entropy {tmpTile} {q_x:.3f} {entropy:.1f}')
-                self.entropy_cnt += 1
-                self.entropy_sum += entropy
+                this_entropy_sum += entropy
+            self.round_entropy_sums.append(this_entropy_sum)
         for thisPidx in range(4):
             if thisPidx == who:
                 self.genbutsu[thisPidx].add(tile) # Always add to our own genbutsu set
@@ -235,4 +279,4 @@ class WaitEstimator(LogHandAnalyzer):
         super().Win(element)
 
     def PrintResults(self):
-        print (f'entropy_cnt, average {self.entropy_cnt} {self.entropy_sum/self.entropy_cnt:.4f}')
+        print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt:.5f}')

@@ -7,10 +7,13 @@ import math
 import sys
 import random
 
+# Baseline: games riichi entropy
+# Baseline:  5000  29082 0.2544165
 GS_C_ccw_ryanmen = 3
 GS_C_ccw_honorTankiShanpon = 2
 GS_C_ccw_nonHonorTankiShanpon = 0.5
-GS_C_ccw_ryanmen = 3
+
+GS_C_ccw_ryanmen = 3 # 2.5, 3.5 both worse
 GS_C_ccw_honorTankiShanpon = 2
 GS_C_ccw_nonHonorTankiShanpon = 0.5
 
@@ -85,8 +88,8 @@ def calcCombos(genbutsu, seen):
             continue
         wait['origCombos'] = wait['combos']
         # heuristic adjustment for waits that players tend to aim for
-        honorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] > 40
-        nonHonorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] < 40
+        honorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] > 30
+        nonHonorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] < 30
         if wait['type'] in ['ryanmen']:
             wait['combos'] *= GS_C_ccw_ryanmen
         elif honorTankiShanpon:
@@ -213,6 +216,7 @@ class WaitEstimator(LogHandAnalyzer):
             this_entropy_sum = 0
             for tmpTile in range(38):
                 if tmpTile%10 == 0: continue
+                # if tmpTile<30: continue  # for testing entropy on only honor tiles
                 # print(combo2str(tmpTile, combos), 1 if tmpTile in self.riichi_ukeire[riichiPidx] else 0)
                 q_x = 0 if tmpTile not in combos else combos[tmpTile]['all']/combos['all']
                 if not tmpTile in self.riichi_ukeire[riichiPidx]:
@@ -260,7 +264,7 @@ class WaitEstimator(LogHandAnalyzer):
         handPlusKans = Counter(self.hands[who])
         for i in range(len(self.calls[who])):
             handPlusKans += Counter({31:3})
-        [value, tiles] = calculateUkeire(handPlusKans, remaining_tiles, calculateMinimumShanten)
+        [value, tiles] = calculateUkeire(handPlusKans, remaining_tiles, calculateMinimumShanten, 0)
         # print(tiles)
         self.riichi_ukeire[who] = tiles
         for t in tiles:
@@ -279,4 +283,4 @@ class WaitEstimator(LogHandAnalyzer):
         super().Win(element)
 
     def PrintResults(self):
-        print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt:.5f}')
+        print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt:.7f}')

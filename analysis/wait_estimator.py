@@ -8,18 +8,19 @@ import sys
 import random
 
 # Baseline: games riichi entropy
-# Baseline:  5000  29082 0.2539984
+# Baseline:  5000  29082 0.2534521
 GS_C_ccw_ryanmen = 3
 GS_C_ccw_honorTankiShanpon = 2
 GS_C_ccw_nonHonorTankiShanpon = 1
+GS_C_ccw_kanchan = 0.5
+GS_C_ccw_riichiSujiTrap = 1          # Applies after GS_C_ccw_kanchan
 
 # Search for better settings
 GS_C_ccw_ryanmen = 3                 # worse: 2.5, 3.5
 GS_C_ccw_honorTankiShanpon = 2       # worse: 1, 3
 GS_C_ccw_nonHonorTankiShanpon = 1    # worse: 0.5, 1.5
-
-terminal_tiles = [1,9,11,19,21,29]
-two_eight_tiles = [2,8,12,18,22,28]
+GS_C_ccw_kanchan = 0.5               # worse: 0.8
+GS_C_ccw_riichiSujiTrap = 1          # 
 
 def generateWaits():
     waitsArray = []
@@ -59,7 +60,7 @@ def generateWaits():
     #     print('w', wait['tiles'], wait['type'])
     return waitsArray
 
-def calcCombos(genbutsu, seen):
+def calcCombos(genbutsu, seen, riichiTile):
     waitsArray = generateWaits()
     heroUnseenTiles = Counter({i: 4 for i in range(1,38)})
     heroUnseenTiles -= seen
@@ -97,6 +98,10 @@ def calcCombos(genbutsu, seen):
             wait['combos'] *= GS_C_ccw_honorTankiShanpon
         elif nonHonorTankiShanpon:
             wait['combos'] *= GS_C_ccw_nonHonorTankiShanpon
+        elif wait['type'] == 'kanchan':
+            wait['combos'] *= GS_C_ccw_kanchan
+            if riichiTile>=3 and riichiTile <=7 and abs(wait['waitsOn'][0] - riichiTile) == 2:
+                wait['combos'] *= GS_C_ccw_riichiSujiTrap
         combos['all'] += wait['combos']
         if not wait['type'] in comboTypes:
             comboTypes[wait['type']] = 0
@@ -211,7 +216,9 @@ class WaitEstimator(LogHandAnalyzer):
                     # TODO: Not true for closed kan!
                     for t in call[1:]:
                         seen[t] += 1
-            combos = calcCombos(self.genbutsu[riichiPidx], seen)
+            # print(f'{self.discards[riichiPidx]} {len(self.discards_at_riichi[riichiPidx])} https://tenhou.net/0/?log={self.round_key}' )
+            # print(f'{self.discards[riichiPidx][len(self.discards_at_riichi[riichiPidx])]}')
+            combos = calcCombos(self.genbutsu[riichiPidx], seen, self.discards[riichiPidx][len(self.discards_at_riichi[riichiPidx])])
             debug = True
             debug = False
             if debug: print('tenpai hand:', convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
@@ -249,11 +256,7 @@ class WaitEstimator(LogHandAnalyzer):
                     # print('furiten after riichi', tile)
                     self.furiten_riichi[thisPidx] = 1
 
-    def RiichiCalled(self, who, step, element):
-        super().RiichiCalled(who, step, element)
-        if step == 1:
-            self.discards_at_riichi[who] = self.discards[who].copy()
-            return
+    def calculateUkeire(self, who):
         converted_hand = Counter(self.hands[who])
         remaining_tiles = [4] * 38
         remaining_tiles[0] = 0
@@ -267,6 +270,16 @@ class WaitEstimator(LogHandAnalyzer):
         for i in range(len(self.calls[who])):
             handPlusKans += Counter({31:3})
         [value, tiles] = calculateUkeire(handPlusKans, remaining_tiles, calculateMinimumShanten, 0)
+        return [value, tiles]
+
+    def RiichiCalled(self, who, step, element):
+        super().RiichiCalled(who, step, element)
+        if step == 1:
+            self.discards_at_riichi[who] = self.discards[who].copy()
+            return
+        # print('r dis', who, self.discards_at_riichi, self.discards)
+        # print('r hand', who, convertHandToTenhouString(self.hands[who]))
+        [value, tiles] = self.calculateUkeire(who)
         # print(tiles)
         self.riichi_ukeire[who] = tiles
         for t in tiles:

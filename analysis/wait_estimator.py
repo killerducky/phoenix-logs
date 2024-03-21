@@ -3,6 +3,7 @@ from analysis_utils import GetDora, convertTile, yaku_names, convertHandToTenhou
 from collections import defaultdict, Counter
 from ukeire import calculateUkeire
 from shanten import calculateMinimumShanten
+import math
 
 terminal_tiles = [1,9,11,19,21,29]
 two_eight_tiles = [2,8,12,18,22,28]
@@ -48,14 +49,18 @@ def generateWaits():
 GS_C_ccw_ryanmen = 3
 GS_C_ccw_honorTankiShanpon = 2
 GS_C_ccw_nonHonorTankiShanpon = 0.5
+GS_C_ccw_ryanmen = 3
+GS_C_ccw_honorTankiShanpon = 2
+GS_C_ccw_nonHonorTankiShanpon = 0.5
 
 def calcCombos(genbutsu, seen):
     waitsArray = generateWaits()
     heroUnseenTiles = Counter({i: 4 for i in range(1,38)})
     heroUnseenTiles -= seen
     # print('gen', genbutsu)
-    # print('seen', seen)
+    # print('seen           ', seen)
     # print('heroUnseenTiles', heroUnseenTiles)
+    # print('16,17', heroUnseenTiles[16], heroUnseenTiles[17], seen[16], seen[17])
 
     combos = {'all':0}
     comboTypes = {}
@@ -100,27 +105,29 @@ def calcCombos(genbutsu, seen):
     return combos
 
 def combo2str(key, combos):
+    if not key in combos:
+        return f"{key} genbutsu"
     keyCombo = combos[key]
     k = convertHandToTenhouString(Counter({key:1}))
-    if not key in combos:
-        return f"{k} genbutsu"
-    # print(key, keyCombo['all'], combos['all'])
     if combos['all'] == 0:
         return f"{k} 0.0 all waits impossible!"
+    #if key == 15: return f"{k} {keyCombo['all']/combos['all']*100:.1f} {keyCombo}"
     return f"{k} {keyCombo['all']/combos['all']*100:.1f}"
 
 class WaitEstimator(LogHandAnalyzer):
     def __init__(self):
         super().__init__()
         self.counts = defaultdict(Counter)
+        self.entropy_sum = 0
+        self.entropy_cnt = 0
         self.uniq_rounds = set()
 
     def RoundStarted(self, init):
         super().RoundStarted(init)
         round_key = f'{self.current_log_id} {init.attrib["seed"]}'
-        print('current round: ', round_key)
+        # print('current round: ', round_key)
         if round_key in self.uniq_rounds:
-            print('duplicate round: ', round_key)
+            print('duplicate round: ', round_key) # I had a bug and thought there were dups...
         else:
             self.uniq_rounds.add(round_key)
         self.tsumogiri = [0,0,0,0]
@@ -129,6 +136,7 @@ class WaitEstimator(LogHandAnalyzer):
         self.discards_at_riichi = [[],[],[],[]]
         self.riichi_ukeire= [[],[],[],[]]
         self.genbutsu=[set(), set(), set(), set()]
+        self.furiten_riichi = [0,0,0,0]
         self.init = init
         self.dora = [GetDora(convertTile(init.attrib["seed"].split(",")[5]))]
 
@@ -137,75 +145,84 @@ class WaitEstimator(LogHandAnalyzer):
         self.dora.append(GetDora(convertTile(hai)))
 
     def TileDiscarded(self, who, tile, tsumogiri, element):
-        if self.discards_at_riichi[who]:
-            return super().TileDiscarded(who, tile, tsumogiri, element)
+        super().TileDiscarded(who, tile, tsumogiri, element)
 
-        if tsumogiri:
-            self.tsumogiri[who] += 1
-        
-        first = True
-
-        for i in range(4):
-            if tile in self.discards[i]:
-                first = False
-                break
-            for call in self.calls[i]:
-                if tile in call:
-                    first = False
-                    break
-
-        if tile in self.dora:
-            first = False
-
-        if first:
-            self.first_discards[who] += 1
-        
-        if tile in self.dora:
-            self.dora_discarded[who] += 1
-        # ----------------------
-        self.genbutsu[who].add(tile) # Add to our own genbutsu set
         for riichiPidx in range(4):
-            if not self.riichi_ukeire[riichiPidx] or riichiPidx == who:
+            if not self.riichi_ukeire[riichiPidx] or riichiPidx == who or self.furiten_riichi[riichiPidx]:
                 continue
-            seen = self.hands[who]
+            seen = Counter(self.hands[who])
             for t in self.dora:
                 seen[t] += 1
             for thisPidx in range(4):
                 for t in self.discards[thisPidx]:
                     seen[t] += 1
                 for call in self.calls[thisPidx]:
-                    for t in call:
+                    # print(call)
+                    # TODO: Not true for closed kan!
+                    for t in call[1:]:
                         seen[t] += 1
             # Note: calcCombos before adding this discard to genbutsu
             combos = calcCombos(self.genbutsu[riichiPidx], seen)
             debug = True
-            # debug = False
-            if debug:
-                print(convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
-                print('len', len(combos))
-                for k in sorted(combos, key=lambda x: 0 if x=='all' else x):
-                    if k == 'all': continue
-                    print(combo2str(k, combos))
-                print()
-            self.genbutsu[riichiPidx].add(tile) # Assuming this passes, add to genbutsu set for riichiPidx player
+            debug = False
+            if debug: print('tenpai hand:', convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
+            for tile in range(38):
+                if tile == 'all': continue
+                # print(combo2str(tile, combos), 1 if tile in self.riichi_ukeire[riichiPidx] else 0)
+                q_x = 0 if tile not in combos else combos[tile]['all']/combos['all']
+                if not tile in self.riichi_ukeire[riichiPidx]:
+                    q_x = 1 - q_x
+                if q_x == 0:
+                    print()
+                    print('tenpai hand:', convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
+                    print(combo2str(tile, combos), 1 if tile in self.riichi_ukeire[riichiPidx] else 0)
+                entropy = -math.log2(q_x)
+                if debug:
+                    if not tile in self.riichi_ukeire[riichiPidx]:
+                        print(f'  tile, q, entropy {tile} {q_x:.3f} {entropy:.1f}')
+                    else:
+                        print(f'o tile, q, entropy {tile} {q_x:.3f} {entropy:.1f}')
+                self.entropy_cnt += 1
+                self.entropy_sum += entropy
 
-        super().TileDiscarded(who, tile, tsumogiri, element)
+        for thisPidx in range(4):
+            if thisPidx == who:
+                self.genbutsu[thisPidx].add(tile) # Always add to our own genbutsu set
+                if tile in self.riichi_ukeire:
+                    print('furiten after riichi', tile)
+                    self.furiten_riichi[thisPidx] = 1
+            elif self.riichi_ukeire[thisPidx]:
+                self.genbutsu[thisPidx].add(tile) # Riichi player didn't Ron, so add
 
     def RiichiCalled(self, who, step, element):
         super().RiichiCalled(who, step, element)
         if step == 1:
             self.discards_at_riichi[who] = self.discards[who].copy()
             return
-        # TODO: [4] * 40? not quite right
-        [value, tiles] = calculateUkeire(self.hands[who], [4] * 40, calculateMinimumShanten)
+        converted_hand = Counter(self.hands[who])
+        remaining_tiles = [4] * 38
+        remaining_tiles[0] = 0
+        remaining_tiles[10] = 0
+        remaining_tiles[20] = 0
+        remaining_tiles[30] = 0
+        for i in range(38):
+            remaining_tiles[i] -= converted_hand[i]
+        # Riichi could have closed kans. For each add a fake ankou of East
+        handPlusKans = Counter(self.hands[who])
+        for i in range(len(self.calls[who])):
+            handPlusKans += Counter({31:3})
+        [value, tiles] = calculateUkeire(handPlusKans, remaining_tiles, calculateMinimumShanten)
         # print(tiles)
         self.riichi_ukeire[who] = tiles
         for t in tiles:
             if t in self.genbutsu[who]:
+                self.furiten_riichi[who] = 1
                 print('furiten riichi', step, who, tiles, convertHandToTenhouString(self.hands[who]), self.init.attrib['seed'], self.current_log_id)
                 break
         if self.calls[who] != []:
-            print("TODO: ankan", self.calls[who])
+            print("TODO: ankan", self.calls[who], self.riichi_ukeire[who], convertHandToTenhouString(self.hands[who]), value)
+        if convertHandToTenhouString(self.hands[who]) == '4466778899p22s7z':
+            print('ho', self.genbutsu[who])
         # print()
 
     def TileCalled(self, who, tiles, element):
@@ -268,6 +285,7 @@ class WaitEstimator(LogHandAnalyzer):
             self.counts[name]["Suit 3"] += suits[2]
 
     def PrintResults(self):
+        print (f'entropy_cnt, average {self.entropy_cnt} {self.entropy_sum/self.entropy_cnt:.4f}')
         with open("./results/PondTraits.csv", "w", encoding="utf8") as f:
             f.write("Yaku,Discards,1/9,2/8,Middle,Honors,Suit 1,Suit 2,Suit 3,Pairs,Dora,Live,Tsumogiri\n")
 

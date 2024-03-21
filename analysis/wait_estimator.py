@@ -8,14 +8,15 @@ import sys
 import random
 
 # Baseline: games riichi entropy
-# Baseline:  5000  29082 0.2544165
+# Baseline:  5000  29082 0.2539984
 GS_C_ccw_ryanmen = 3
 GS_C_ccw_honorTankiShanpon = 2
-GS_C_ccw_nonHonorTankiShanpon = 0.5
+GS_C_ccw_nonHonorTankiShanpon = 1
 
-GS_C_ccw_ryanmen = 3 # 2.5, 3.5 both worse
-GS_C_ccw_honorTankiShanpon = 2
-GS_C_ccw_nonHonorTankiShanpon = 0.5
+# Search for better settings
+GS_C_ccw_ryanmen = 3                 # worse: 2.5, 3.5
+GS_C_ccw_honorTankiShanpon = 2       # worse: 1, 3
+GS_C_ccw_nonHonorTankiShanpon = 1    # worse: 0.5, 1.5
 
 terminal_tiles = [1,9,11,19,21,29]
 two_eight_tiles = [2,8,12,18,22,28]
@@ -156,6 +157,7 @@ class WaitEstimator(LogHandAnalyzer):
         self.entropy_cnt = 0
         self.uniq_rounds = set()
         random.seed(1)
+        print('params: ', GS_C_ccw_ryanmen, GS_C_ccw_honorTankiShanpon, GS_C_ccw_nonHonorTankiShanpon)
 
     def RoundStarted(self, init):
         super().RoundStarted(init)

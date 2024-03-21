@@ -5,6 +5,13 @@ from ukeire import calculateUkeire
 from shanten import calculateMinimumShanten
 import math
 
+GS_C_ccw_ryanmen = 3
+GS_C_ccw_honorTankiShanpon = 2
+GS_C_ccw_nonHonorTankiShanpon = 0.5
+GS_C_ccw_ryanmen = 3
+GS_C_ccw_honorTankiShanpon = 2
+GS_C_ccw_nonHonorTankiShanpon = 0.5
+
 terminal_tiles = [1,9,11,19,21,29]
 two_eight_tiles = [2,8,12,18,22,28]
 
@@ -45,13 +52,6 @@ def generateWaits():
     # for wait in waitsArray:
     #     print('w', wait['tiles'], wait['type'])
     return waitsArray
-
-GS_C_ccw_ryanmen = 3
-GS_C_ccw_honorTankiShanpon = 2
-GS_C_ccw_nonHonorTankiShanpon = 0.5
-GS_C_ccw_ryanmen = 3
-GS_C_ccw_honorTankiShanpon = 2
-GS_C_ccw_nonHonorTankiShanpon = 0.5
 
 def calcCombos(genbutsu, seen):
     waitsArray = generateWaits()
@@ -222,7 +222,7 @@ class WaitEstimator(LogHandAnalyzer):
         for t in tiles:
             if t in self.genbutsu[who]:
                 self.furiten_riichi[who] = 1
-                print('furiten riichi', step, who, tiles, convertHandToTenhouString(self.hands[who]), self.init.attrib['seed'], self.current_log_id)
+                # print('furiten riichi', step, who, tiles, convertHandToTenhouString(self.hands[who]), self.init.attrib['seed'], self.current_log_id)
                 break
         # print()
 
@@ -233,75 +233,6 @@ class WaitEstimator(LogHandAnalyzer):
 
     def Win(self, element):
         super().Win(element)
-        who = int(element.attrib["who"])
-        if len(self.discards_at_riichi[who]) < 8: return
-
-        yaku = []
-
-        if "yaku" in element.attrib:
-            yaku = [int(x) for x in element.attrib["yaku"].split(",")[0::2]]
-        else:
-            yaku = [int(x) for x in element.attrib["yakuman"].split(",")[0::2]]
-
-        tile_counts = Counter(self.discards_at_riichi[who])
-
-        terminals = 0
-        two_eights = 0
-        middles = 0
-        honors = 0
-        pairs = 0
-        suits = [0, 0, 0]
-
-        for tile in tile_counts:
-            if tile > 30:
-                honors += tile_counts[tile]
-            else:
-                suits[int(tile / 10)] += tile_counts[tile]
-
-                if tile in terminal_tiles:
-                    terminals += tile_counts[tile]
-                elif tile in two_eight_tiles:
-                    two_eights += tile_counts[tile]
-                else:
-                    middles += tile_counts[tile]
-            
-            if tile_counts[tile] > 1:
-                pairs += 1
-
-        suits.sort()
-        
-        for i in yaku:
-            name = yaku_names[i]
-            self.counts[name]["Discards"] += len(self.discards_at_riichi[who])
-            self.counts[name]["Dora"] += self.dora_discarded[who]
-            self.counts[name]["First"] += self.first_discards[who]
-            self.counts[name]["Tsumogiri"] += self.tsumogiri[who]
-            self.counts[name]["1/9"] += terminals
-            self.counts[name]["2/8"] += two_eights
-            self.counts[name]["Middle"] += middles
-            self.counts[name]["Honors"] += honors
-            self.counts[name]["Pairs"] += pairs
-            self.counts[name]["Suit 1"] += suits[0]
-            self.counts[name]["Suit 2"] += suits[1]
-            self.counts[name]["Suit 3"] += suits[2]
 
     def PrintResults(self):
         print (f'entropy_cnt, average {self.entropy_cnt} {self.entropy_sum/self.entropy_cnt:.4f}')
-        with open("./results/PondTraits.csv", "w", encoding="utf8") as f:
-            f.write("Yaku,Discards,1/9,2/8,Middle,Honors,Suit 1,Suit 2,Suit 3,Pairs,Dora,Live,Tsumogiri\n")
-
-            for yaku in self.counts:
-                f.write("%s," % yaku)
-                f.write("%d," % self.counts[yaku]["Discards"])
-                f.write("%d," % self.counts[yaku]["1/9"])
-                f.write("%d," % self.counts[yaku]["2/8"])
-                f.write("%d," % self.counts[yaku]["Middle"])
-                f.write("%d," % self.counts[yaku]["Honors"])
-                f.write("%d," % self.counts[yaku]["Suit 1"])
-                f.write("%d," % self.counts[yaku]["Suit 2"])
-                f.write("%d," % self.counts[yaku]["Suit 3"])
-                f.write("%d," % self.counts[yaku]["Pairs"])
-                f.write("%d," % self.counts[yaku]["Dora"])
-                f.write("%d," % self.counts[yaku]["First"])
-                f.write("%d," % self.counts[yaku]["Tsumogiri"])
-                f.write("\n")

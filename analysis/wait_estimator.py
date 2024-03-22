@@ -3,29 +3,27 @@ from analysis_utils import GetDora, convertTile, yaku_names, convertHandToTenhou
 from collections import defaultdict, Counter
 from ukeire import calculateUkeire
 from shanten import calculateMinimumShanten
-import math
-import sys
-import random
+import math, os, sys, random, pickle
 
 # Just changing seed: 0.25336503460159937
 #                     0.2533903941784605
 #                           ^--- noise
 
-# Baseline: games riichi entropy
-# Baseline:  5000  29082 0.2533373759204471
+# Best: games riichi entropy
+#        5000  29082 0.25303229165833896
 # penchan is the anchor at 1
-GS_C_ccw_ryanmen = 3
+GS_C_ccw_ryanmen = 3.2
 GS_C_ccw_honorTankiShanpon = 2
 GS_C_ccw_nonHonorTankiShanpon = 1
 GS_C_ccw_kanchan = 0.26
-GS_C_ccw_riichiSujiTrap = 1.3        # Applies after GS_C_ccw_kanchan
+GS_C_ccw_riichiSujiTrap = 10.0        # Applies after GS_C_ccw_kanchan
 
 # Search for better settings
-GS_C_ccw_ryanmen = 3                 # worse: 2.5, 3.5
+GS_C_ccw_ryanmen = 3.2               # worse: 3.0, 3.5
 GS_C_ccw_honorTankiShanpon = 2       # worse: 1, 3
 GS_C_ccw_nonHonorTankiShanpon = 1    # worse: 0.5, 1.5
 GS_C_ccw_kanchan = 0.26              # worse: 0.275, 0.25
-GS_C_ccw_riichiSujiTrap = 1.3        # worse: 1.1
+GS_C_ccw_riichiSujiTrap = 10         # worse: 8, 12
 
 def generateWaits():
     waitsArray = []
@@ -113,6 +111,10 @@ class WaitEstimator(LogHandAnalyzer):
         self.entropy_cnt = 0
         self.uniq_rounds = set()
         random.seed(1)
+        self.calculateUkeireCache = {}
+        if os.path.exists("ukeire_cache.pickle"):
+            with open("ukeire_cache.pickle", "rb") as fp: self.calculateUkeireCache = pickle.load(fp)
+        self.calculateUkeireCacheDirty = False
         print('params: ', GS_C_ccw_ryanmen, GS_C_ccw_honorTankiShanpon, 
               GS_C_ccw_nonHonorTankiShanpon, GS_C_ccw_kanchan, GS_C_ccw_riichiSujiTrap)
 
@@ -267,20 +269,23 @@ class WaitEstimator(LogHandAnalyzer):
                     self.furiten_riichi[thisPidx] = 1
 
     def calculateUkeire(self, who):
-        converted_hand = Counter(self.hands[who])
-        remaining_tiles = [4] * 38
-        remaining_tiles[0] = 0
-        remaining_tiles[10] = 0
-        remaining_tiles[20] = 0
-        remaining_tiles[30] = 0
-        for i in range(38):
-            remaining_tiles[i] -= converted_hand[i]
         # Riichi could have closed kans. For each add a fake ankou of East
         handPlusKans = Counter(self.hands[who])
-        for i in range(len(self.calls[who])):
-            handPlusKans += Counter({31:3})
-        [value, tiles] = calculateUkeire(handPlusKans, remaining_tiles, calculateMinimumShanten, 0)
-        return [value, tiles]
+        key = convertHandToTenhouString(handPlusKans)
+        if not key in self.calculateUkeireCache:
+            self.calculateUkeireCacheDirty = True
+            remaining_tiles = [4] * 38
+            remaining_tiles[0] = 0
+            remaining_tiles[10] = 0
+            remaining_tiles[20] = 0
+            remaining_tiles[30] = 0
+            for i in range(38):
+                remaining_tiles[i] -= handPlusKans[i]
+            for i in range(len(self.calls[who])):
+                handPlusKans += Counter({31:3})
+            [value, tiles] = calculateUkeire(handPlusKans, remaining_tiles, calculateMinimumShanten, 0)
+            self.calculateUkeireCache[key] = [value, tiles]
+        return self.calculateUkeireCache[key]
 
     def RiichiCalled(self, who, step, element):
         super().RiichiCalled(who, step, element)
@@ -309,3 +314,5 @@ class WaitEstimator(LogHandAnalyzer):
 
     def PrintResults(self):
         print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt}')
+        if  self.calculateUkeireCacheDirty:
+            with open("ukeire_cache.pickle", "wb") as fp: pickle.dump(self.calculateUkeireCache, fp)

@@ -4,3 +4,4 @@ temp
 db
 logs
 analysis/results
+*.pickle

@@ -7,20 +7,25 @@ import math
 import sys
 import random
 
+# Just changing seed: 0.25336503460159937
+#                     0.2533903941784605
+#                           ^--- noise
+
 # Baseline: games riichi entropy
-# Baseline:  5000  29082 0.2534521
+# Baseline:  5000  29082 0.2533373759204471
+# penchan is the anchor at 1
 GS_C_ccw_ryanmen = 3
 GS_C_ccw_honorTankiShanpon = 2
 GS_C_ccw_nonHonorTankiShanpon = 1
-GS_C_ccw_kanchan = 0.5
-GS_C_ccw_riichiSujiTrap = 1          # Applies after GS_C_ccw_kanchan
+GS_C_ccw_kanchan = 0.26
+GS_C_ccw_riichiSujiTrap = 1.3        # Applies after GS_C_ccw_kanchan
 
 # Search for better settings
 GS_C_ccw_ryanmen = 3                 # worse: 2.5, 3.5
 GS_C_ccw_honorTankiShanpon = 2       # worse: 1, 3
 GS_C_ccw_nonHonorTankiShanpon = 1    # worse: 0.5, 1.5
-GS_C_ccw_kanchan = 0.5               # worse: 0.8
-GS_C_ccw_riichiSujiTrap = 1          # 
+GS_C_ccw_kanchan = 0.26              # worse: 0.275, 0.25
+GS_C_ccw_riichiSujiTrap = 1.3        # worse: 1.1
 
 def generateWaits():
     waitsArray = []
@@ -60,60 +65,6 @@ def generateWaits():
     #     print('w', wait['tiles'], wait['type'])
     return waitsArray
 
-def calcCombos(genbutsu, seen, riichiTile):
-    waitsArray = generateWaits()
-    heroUnseenTiles = Counter({i: 4 for i in range(1,38)})
-    heroUnseenTiles -= seen
-    # print('gen', genbutsu)
-    # print('seen           ', seen)
-    # print('heroUnseenTiles', heroUnseenTiles)
-    # print('16,17', heroUnseenTiles[16], heroUnseenTiles[17], seen[16], seen[17])
-
-    combos = {'all':0}
-    comboTypes = {}
-    for wait in waitsArray:
-        wait['combos'] = 1
-        wait['numUnseen'] = []
-        for [i,t] in enumerate(wait['tiles']):
-            if i>0 and wait['type']=='shanpon':
-                wait['combos'] *= heroUnseenTiles[t]-1 # Shanpons pull the same tile, so after the first one there is 1 less remaining
-                wait['numUnseen'].append(heroUnseenTiles[t]-1)
-            else:
-                wait['combos'] *= heroUnseenTiles[t]
-                wait['numUnseen'].append(heroUnseenTiles[t])
-        # Shanpons: Order doesn't matter
-        if wait['type']=='shanpon':
-            wait['combos'] /= len(wait['tiles']) # Technically Math.exp(length) but it's always 2 for this case
-        thisGenbutsu = any(t in genbutsu for t in wait['waitsOn'])
-        # thisGenbutsu = False
-        if thisGenbutsu:
-            continue
-        wait['origCombos'] = wait['combos']
-        # heuristic adjustment for waits that players tend to aim for
-        honorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] > 30
-        nonHonorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] < 30
-        if wait['type'] in ['ryanmen']:
-            wait['combos'] *= GS_C_ccw_ryanmen
-        elif honorTankiShanpon:
-            wait['combos'] *= GS_C_ccw_honorTankiShanpon
-        elif nonHonorTankiShanpon:
-            wait['combos'] *= GS_C_ccw_nonHonorTankiShanpon
-        elif wait['type'] == 'kanchan':
-            wait['combos'] *= GS_C_ccw_kanchan
-            if riichiTile>=3 and riichiTile <=7 and abs(wait['waitsOn'][0] - riichiTile) == 2:
-                wait['combos'] *= GS_C_ccw_riichiSujiTrap
-        combos['all'] += wait['combos']
-        if not wait['type'] in comboTypes:
-            comboTypes[wait['type']] = 0
-        comboTypes[wait['type']] += wait['combos']
-        if wait['type']=='shanpon':
-            wait['combos'] *= 2 # Shanpons always have a partner pair, so multiply by 2 *after* adding the the 'all' combos denominator
-        for t in wait['waitsOn']:
-            if not t in combos:
-                combos[t]={'all':0, 'types':[]}
-            combos[t]['all'] += wait['combos']
-            combos[t]['types'].append(wait)
-    return combos
 
 def combo2str(key, combos):
     if not key in combos:
@@ -162,7 +113,66 @@ class WaitEstimator(LogHandAnalyzer):
         self.entropy_cnt = 0
         self.uniq_rounds = set()
         random.seed(1)
-        print('params: ', GS_C_ccw_ryanmen, GS_C_ccw_honorTankiShanpon, GS_C_ccw_nonHonorTankiShanpon)
+        print('params: ', GS_C_ccw_ryanmen, GS_C_ccw_honorTankiShanpon, 
+              GS_C_ccw_nonHonorTankiShanpon, GS_C_ccw_kanchan, GS_C_ccw_riichiSujiTrap)
+
+    def calcCombos(self, riichiPidx, genbutsu, seen, riichiTile):
+        waitsArray = generateWaits()
+        heroUnseenTiles = Counter({i: 4 for i in range(1,38)})
+        heroUnseenTiles -= seen
+        # print('gen', genbutsu)
+        # print('seen           ', seen)
+        # print('heroUnseenTiles', heroUnseenTiles)
+        # print('16,17', heroUnseenTiles[16], heroUnseenTiles[17], seen[16], seen[17])
+
+        combos = {'all':0}
+        comboTypes = {}
+        for wait in waitsArray:
+            wait['combos'] = 1
+            wait['numUnseen'] = []
+            for [i,t] in enumerate(wait['tiles']):
+                if i>0 and wait['type']=='shanpon':
+                    wait['combos'] *= heroUnseenTiles[t]-1 # Shanpons pull the same tile, so after the first one there is 1 less remaining
+                    wait['numUnseen'].append(heroUnseenTiles[t]-1)
+                else:
+                    wait['combos'] *= heroUnseenTiles[t]
+                    wait['numUnseen'].append(heroUnseenTiles[t])
+            # Shanpons: Order doesn't matter
+            if wait['type']=='shanpon':
+                wait['combos'] /= len(wait['tiles']) # Technically Math.exp(length) but it's always 2 for this case
+            thisGenbutsu = any(t in genbutsu for t in wait['waitsOn'])
+            # thisGenbutsu = False
+            if thisGenbutsu:
+                continue
+            wait['origCombos'] = wait['combos']
+            # heuristic adjustment for waits that players tend to aim for
+            honorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] > 30
+            nonHonorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] < 30
+            if wait['type'] in ['ryanmen']:
+                wait['combos'] *= GS_C_ccw_ryanmen
+            elif honorTankiShanpon:
+                wait['combos'] *= GS_C_ccw_honorTankiShanpon
+            elif nonHonorTankiShanpon:
+                wait['combos'] *= GS_C_ccw_nonHonorTankiShanpon
+            elif wait['type'] == 'kanchan':
+                wait['combos'] *= GS_C_ccw_kanchan
+                if (riichiTile%10)>=4 and (riichiTile%10) <=6 and abs(wait['waitsOn'][0] - riichiTile) == 3:
+                    wait['combos'] *= GS_C_ccw_riichiSujiTrap
+                    # if wait['waitsOn'][0] in self.riichi_ukeire[riichiPidx]:
+                    #     print(f'rst {riichiTile} {self.riichi_ukeire[riichiPidx]}  https://tenhou.net/0/?log={self.round_key}')
+            combos['all'] += wait['combos']
+            if not wait['type'] in comboTypes:
+                comboTypes[wait['type']] = 0
+            comboTypes[wait['type']] += wait['combos']
+            if wait['type']=='shanpon':
+                wait['combos'] *= 2 # Shanpons always have a partner pair, so multiply by 2 *after* adding the the 'all' combos denominator
+            for t in wait['waitsOn']:
+                if not t in combos:
+                    combos[t]={'all':0, 'types':[]}
+                combos[t]['all'] += wait['combos']
+                combos[t]['types'].append(wait)
+        return combos
+
 
     def RoundStarted(self, init):
         super().RoundStarted(init)
@@ -218,7 +228,7 @@ class WaitEstimator(LogHandAnalyzer):
                         seen[t] += 1
             # print(f'{self.discards[riichiPidx]} {len(self.discards_at_riichi[riichiPidx])} https://tenhou.net/0/?log={self.round_key}' )
             # print(f'{self.discards[riichiPidx][len(self.discards_at_riichi[riichiPidx])]}')
-            combos = calcCombos(self.genbutsu[riichiPidx], seen, self.discards[riichiPidx][len(self.discards_at_riichi[riichiPidx])])
+            combos = self.calcCombos(riichiPidx, self.genbutsu[riichiPidx], seen, self.discards[riichiPidx][len(self.discards_at_riichi[riichiPidx])])
             debug = True
             debug = False
             if debug: print('tenpai hand:', convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
@@ -298,4 +308,4 @@ class WaitEstimator(LogHandAnalyzer):
         super().Win(element)
 
     def PrintResults(self):
-        print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt:.7f}')
+        print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt}')

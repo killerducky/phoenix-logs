@@ -9,21 +9,24 @@ import math, os, sys, random, pickle
 #                     0.2533903941784605
 #                           ^--- noise
 
-# Best: games riichi entropy
-#        5000  29082 0.25303229165833896
+# games riichi
+#  5000  29082
+
+# Best entropy and settings so far:
+GS_C_ccw_bestEntropy = 0.25293207211789676
 # penchan is the anchor at 1
-GS_C_ccw_ryanmen = 3.2
-GS_C_ccw_honorTankiShanpon = 2
-GS_C_ccw_nonHonorTankiShanpon = 1
-GS_C_ccw_kanchan = 0.26
-GS_C_ccw_riichiSujiTrap = 10.0        # Applies after GS_C_ccw_kanchan
+GS_C_ccw_ryanmen = 3.8
+GS_C_ccw_honorTankiShanpon = 1.9
+GS_C_ccw_nonHonorTankiShanpon = 1.1
+GS_C_ccw_kanchan = 0.275
+GS_C_ccw_riichiSujiTrap = 11        # Applies after GS_C_ccw_kanchan
 
 # Search for better settings
-GS_C_ccw_ryanmen = 3.2               # worse: 3.0, 3.5
-GS_C_ccw_honorTankiShanpon = 2       # worse: 1, 3
-GS_C_ccw_nonHonorTankiShanpon = 1    # worse: 0.5, 1.5
-GS_C_ccw_kanchan = 0.26              # worse: 0.275, 0.25
-GS_C_ccw_riichiSujiTrap = 10         # worse: 8, 12
+GS_C_ccw_ryanmen = 3.8               # worse: 3.7, 3.9
+GS_C_ccw_honorTankiShanpon = 1.9     # worse: 1.8, 2.0
+GS_C_ccw_nonHonorTankiShanpon = 1.1  # worse: 1.0, 1.2
+GS_C_ccw_kanchan = 0.275             # worse: 0.27, 0.28
+GS_C_ccw_riichiSujiTrap = 11         # worse: 10, 12
 
 def generateWaits():
     waitsArray = []
@@ -313,6 +316,8 @@ class WaitEstimator(LogHandAnalyzer):
         super().Win(element)
 
     def PrintResults(self):
-        print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt}')
-        if  self.calculateUkeireCacheDirty:
+        diff = self.entropy_sum/self.entropy_cnt-GS_C_ccw_bestEntropy
+        result = "better" if diff < 0 else "worse"
+        print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt} {diff} {result}')
+        if self.calculateUkeireCacheDirty:
             with open("ukeire_cache.pickle", "wb") as fp: pickle.dump(self.calculateUkeireCache, fp)

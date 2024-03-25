@@ -5,39 +5,41 @@ from ukeire import calculateUkeire
 from shanten import calculateMinimumShanten
 import math, os, sys, random, pickle
 
-# Just changing seed: 0.25336503460159937
-#                     0.2533903941784605
-#                           ^--- noise
 
 # games riichi
 #  5000  29082
 
+# Just changing seed: 0.25336503460159937
+#                     0.2533903941784605
+#                           ^--- noise
+
 # Best entropy and settings so far:
+penchan = 1.0
 GS_C_ccw = {
-    'bestEntropy': 0.25247793929129986,
+    'bestEntropy': 0.2524776574830301,
     # penchan is the anchor at 1
-    'ryanmen': 3.9,
-    'honorTankiShanpon': 1.9,
-    'nonHonorTankiShanpon': 1.1,
-    'kanchan': 0.23,
-    'riichiSujiTrap': 2.9,
+    'ryanmen': 3.5/penchan,
+    'honorTankiShanpon': 1.7/penchan,
+    'nonHonorTankiShanpon': 1.0/penchan,
+    'kanchan': 0.21/penchan,
+    'kanchanRiichiSujiTrap': 2.6/penchan,
     'uraSuji': 1.2,
     'matagiSujiEarly': 0.6,
     'matagiSujiRiichi': 1.2,
 }
 
-penchan = 1.0
+penchan = 1.0  # best
 # Search for better settings
 GS_C_ccw = {
     'bestEntropy': GS_C_ccw['bestEntropy'],
-    'ryanmen': 3.9/penchan,              # worse: 3.8, 4.0
-    'honorTankiShanpon': 1.9/penchan,    # worse: 1.8, 2.0
-    'nonHonorTankiShanpon': 1.1/penchan, # worse: 1.0, 1.2
-    'kanchan': 0.23/penchan,             # worse: 0.22, 0.24
-    'riichiSujiTrap': 2.9/penchan,       # worse: 2.8, 3
-    'uraSuji': 1.2,                      # worse: 1.1, 1.3
-    'matagiSujiEarly': 0.6,              # worse: 0.5, 0.7
-    'matagiSujiRiichi': 1.2,             # worse: 1.1, 1.3
+    'ryanmen': 3.5/penchan,                # worse: 
+    'honorTankiShanpon': 1.7/penchan,      # worse: 
+    'nonHonorTankiShanpon': 1.0/penchan,   # worse: 
+    'kanchan': 0.21/penchan,               # worse: 
+    'kanchanRiichiSujiTrap': 2.6/penchan,  # worse: 
+    'uraSuji': 1.2,                        # worse: 
+    'matagiSujiEarly': 0.6,                # worse: 
+    'matagiSujiRiichi': 1.2,               # worse: 
 }
 
 def generateWaits():
@@ -194,7 +196,7 @@ class WaitEstimator(LogHandAnalyzer):
                 wait['combos'] *= GS_C_ccw['nonHonorTankiShanpon']
             elif wait['type'] == 'kanchan':
                 if (riichiTile%10)>=4 and (riichiTile%10) <=6 and abs(wait['waitsOn'][0] - riichiTile) == 3:
-                    wait['combos'] *= GS_C_ccw['riichiSujiTrap']
+                    wait['combos'] *= GS_C_ccw['kanchanRiichiSujiTrap']
                 else:
                     wait['combos'] *= GS_C_ccw['kanchan']
             combos['all'] += wait['combos']

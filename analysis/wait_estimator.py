@@ -14,13 +14,13 @@ import math, os, sys, random, pickle
 
 # Best entropy and settings so far:
 GS_C_ccw = {
-    'bestEntropy': 0.25249698468869425,
+    'bestEntropy': 0.25249116052182147,
     # penchan is the anchor at 1
     'ryanmen': 3.7,
     'honorTankiShanpon': 1.9,
     'nonHonorTankiShanpon': 1.1,
     'kanchan': 0.275,
-    'riichiSujiTrap': 11,             # Applies after GS_C_ccw['kanchan']
+    'riichiSujiTrap': 2.9,
     'uraSuji': 1.2,
     'matagiSujiEarly': 0.6,
     'matagiSujiRiichi': 1.2,
@@ -33,7 +33,7 @@ GS_C_ccw = {
     'honorTankiShanpon': 1.9,    # worse: 1.8, 2.0
     'nonHonorTankiShanpon': 1.1, # worse: 1.0, 1.2
     'kanchan': 0.275,            # worse: 0.27, 0.28
-    'riichiSujiTrap': 11,        # worse: 10, 12
+    'riichiSujiTrap': 2.9,       # worse: 2.8, 3
     'uraSuji': 1.2,              # worse: 1.1, 1.3
     'matagiSujiEarly': 0.6,      # worse: 0.5, 0.7
     'matagiSujiRiichi': 1.2,     # worse: 1.1, 1.3
@@ -192,11 +192,10 @@ class WaitEstimator(LogHandAnalyzer):
             elif nonHonorTankiShanpon:
                 wait['combos'] *= GS_C_ccw['nonHonorTankiShanpon']
             elif wait['type'] == 'kanchan':
-                wait['combos'] *= GS_C_ccw['kanchan']
                 if (riichiTile%10)>=4 and (riichiTile%10) <=6 and abs(wait['waitsOn'][0] - riichiTile) == 3:
                     wait['combos'] *= GS_C_ccw['riichiSujiTrap']
-                    #if wait['waitsOn'][0] in self.riichi_ukeire[riichiPidx]:
-                    #    print(f'rst {riichiTile} {self.riichi_ukeire[riichiPidx]} {convertHandToTenhouString(self.hands[riichiPidx])} https://tenhou.net/0/?log={self.round_key}')
+                else:
+                    wait['combos'] *= GS_C_ccw['kanchan']
             combos['all'] += wait['combos']
             if not wait['type'] in comboTypes:
                 comboTypes[wait['type']] = 0

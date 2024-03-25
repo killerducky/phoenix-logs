@@ -13,26 +13,31 @@ import math, os, sys, random, pickle
 #  5000  29082
 
 # Best entropy and settings so far:
-GS_C_ccw_bestEntropy = 0.25286634704921196
-# penchan is the anchor at 1
-GS_C_ccw_ryanmen = 3.7
-GS_C_ccw_honorTankiShanpon = 1.9
-GS_C_ccw_nonHonorTankiShanpon = 1.1
-GS_C_ccw_kanchan = 0.275
-GS_C_ccw_riichiSujiTrap = 11        # Applies after GS_C_ccw_kanchan
-GS_C_ccw_uraSuji = 1.2
-GS_C_ccw_matagiSujiEarly = 0.6
-GS_C_ccw_matagiSujiRiichi = 1.0
+GS_C_ccw = {
+    'bestEntropy': 0.25249698468869425,
+    # penchan is the anchor at 1
+    'ryanmen': 3.7,
+    'honorTankiShanpon': 1.9,
+    'nonHonorTankiShanpon': 1.1,
+    'kanchan': 0.275,
+    'riichiSujiTrap': 11,             # Applies after GS_C_ccw['kanchan']
+    'uraSuji': 1.2,
+    'matagiSujiEarly': 0.6,
+    'matagiSujiRiichi': 1.2,
+}
 
 # Search for better settings
-GS_C_ccw_ryanmen = 3.7               # worse: 3.6, 3.8
-GS_C_ccw_honorTankiShanpon = 1.9     # worse: 1.8, 2.0
-GS_C_ccw_nonHonorTankiShanpon = 1.1  # worse: 1.0, 1.2
-GS_C_ccw_kanchan = 0.275             # worse: 0.27, 0.28
-GS_C_ccw_riichiSujiTrap = 11         # worse: 10, 12
-GS_C_ccw_uraSuji = 1.2               # worse: 1.1, 1.3
-GS_C_ccw_matagiSujiEarly = 0.6       # worse: 0.5, 0.8
-GS_C_ccw_matagiSujiRiichi = 1.0
+GS_C_ccw = {
+    'bestEntropy': GS_C_ccw['bestEntropy'],
+    'ryanmen': 3.7,              # worse: 3.6, 3.8
+    'honorTankiShanpon': 1.9,    # worse: 1.8, 2.0
+    'nonHonorTankiShanpon': 1.1, # worse: 1.0, 1.2
+    'kanchan': 0.275,            # worse: 0.27, 0.28
+    'riichiSujiTrap': 11,        # worse: 10, 12
+    'uraSuji': 1.2,              # worse: 1.1, 1.3
+    'matagiSujiEarly': 0.6,      # worse: 0.5, 0.7
+    'matagiSujiRiichi': 1.2,     # worse: 1.1, 1.3
+}
 
 def generateWaits():
     waitsArray = []
@@ -124,8 +129,7 @@ class WaitEstimator(LogHandAnalyzer):
         if os.path.exists("ukeire_cache.pickle"):
             with open("ukeire_cache.pickle", "rb") as fp: self.calculateUkeireCache = pickle.load(fp)
         self.calculateUkeireCacheDirty = False
-        print('params: ', GS_C_ccw_ryanmen, GS_C_ccw_honorTankiShanpon, 
-              GS_C_ccw_nonHonorTankiShanpon, GS_C_ccw_kanchan, GS_C_ccw_riichiSujiTrap, GS_C_ccw_uraSuji)
+        print('params: ', GS_C_ccw)
 
     def calcCombos(self, riichiPidx, genbutsu, seen, discardsIncludingRiichiTile):
         riichiTile = discardsIncludingRiichiTile[-1]
@@ -161,7 +165,7 @@ class WaitEstimator(LogHandAnalyzer):
             honorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] > 30
             nonHonorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] < 30
             if wait['type'] in ['ryanmen']:
-                wait['combos'] *= GS_C_ccw_ryanmen
+                wait['combos'] *= GS_C_ccw['ryanmen']
                 uraSuji2 = False
                 for discard in discardsIncludingRiichiTile:
                     if discard in wait['tiles']: continue
@@ -169,7 +173,7 @@ class WaitEstimator(LogHandAnalyzer):
                         if discard%10 >=4 and discard%10 <=6 and abs(discard - waitTile) == 2:
                             uraSuji2 = True
                 if uraSuji2:
-                    wait['combos'] *= GS_C_ccw_uraSuji
+                    wait['combos'] *= GS_C_ccw['uraSuji']
                 matagiSujiEarly = False
                 matagiSujiRiichi = False
                 for discard in discardsIncludingRiichiTile:
@@ -180,17 +184,17 @@ class WaitEstimator(LogHandAnalyzer):
                         else:
                             matagiSujiEarly = True
                 if matagiSujiEarly:
-                    wait['combos'] *= GS_C_ccw_matagiSujiEarly
+                    wait['combos'] *= GS_C_ccw['matagiSujiEarly']
                 elif matagiSujiRiichi:
-                    wait['combos'] *= GS_C_ccw_matagiSujiRiichi
+                    wait['combos'] *= GS_C_ccw['matagiSujiRiichi']
             elif honorTankiShanpon:
-                wait['combos'] *= GS_C_ccw_honorTankiShanpon
+                wait['combos'] *= GS_C_ccw['honorTankiShanpon']
             elif nonHonorTankiShanpon:
-                wait['combos'] *= GS_C_ccw_nonHonorTankiShanpon
+                wait['combos'] *= GS_C_ccw['nonHonorTankiShanpon']
             elif wait['type'] == 'kanchan':
-                wait['combos'] *= GS_C_ccw_kanchan
+                wait['combos'] *= GS_C_ccw['kanchan']
                 if (riichiTile%10)>=4 and (riichiTile%10) <=6 and abs(wait['waitsOn'][0] - riichiTile) == 3:
-                    wait['combos'] *= GS_C_ccw_riichiSujiTrap
+                    wait['combos'] *= GS_C_ccw['riichiSujiTrap']
                     #if wait['waitsOn'][0] in self.riichi_ukeire[riichiPidx]:
                     #    print(f'rst {riichiTile} {self.riichi_ukeire[riichiPidx]} {convertHandToTenhouString(self.hands[riichiPidx])} https://tenhou.net/0/?log={self.round_key}')
             combos['all'] += wait['combos']
@@ -343,7 +347,7 @@ class WaitEstimator(LogHandAnalyzer):
         super().Win(element)
 
     def PrintResults(self):
-        diff = self.entropy_sum/self.entropy_cnt-GS_C_ccw_bestEntropy
+        diff = self.entropy_sum/self.entropy_cnt-GS_C_ccw['bestEntropy']
         result = "better" if diff < 0 else "worse"
         print (f'entropy_cnt, entropy_cnt/34 average {self.entropy_cnt} {self.entropy_cnt/34:.0f} {self.entropy_sum/self.entropy_cnt} {diff} {result}')
         if self.calculateUkeireCacheDirty:

@@ -21,6 +21,8 @@ GS_C_ccw_nonHonorTankiShanpon = 1.1
 GS_C_ccw_kanchan = 0.275
 GS_C_ccw_riichiSujiTrap = 11        # Applies after GS_C_ccw_kanchan
 GS_C_ccw_uraSuji = 1.2
+GS_C_ccw_matagiSujiEarly = 0.6
+GS_C_ccw_matagiSujiRiichi = 1.0
 
 # Search for better settings
 GS_C_ccw_ryanmen = 3.7               # worse: 3.6, 3.8
@@ -29,6 +31,8 @@ GS_C_ccw_nonHonorTankiShanpon = 1.1  # worse: 1.0, 1.2
 GS_C_ccw_kanchan = 0.275             # worse: 0.27, 0.28
 GS_C_ccw_riichiSujiTrap = 11         # worse: 10, 12
 GS_C_ccw_uraSuji = 1.2               # worse: 1.1, 1.3
+GS_C_ccw_matagiSujiEarly = 0.6       # worse: 0.5, 0.8
+GS_C_ccw_matagiSujiRiichi = 1.0
 
 def generateWaits():
     waitsArray = []
@@ -164,7 +168,21 @@ class WaitEstimator(LogHandAnalyzer):
                     for waitTile in wait['tiles']:
                         if discard%10 >=4 and discard%10 <=6 and abs(discard - waitTile) == 2:
                             uraSuji2 = True
-                if uraSuji2: wait['combos'] *= GS_C_ccw_uraSuji
+                if uraSuji2:
+                    wait['combos'] *= GS_C_ccw_uraSuji
+                matagiSujiEarly = False
+                matagiSujiRiichi = False
+                for discard in discardsIncludingRiichiTile:
+                    # if discard%10 != 2 and discard%10 != 8: continue
+                    if discard in wait['tiles']:
+                        if discard == riichiTile:
+                            matagiSujiRiichi = True
+                        else:
+                            matagiSujiEarly = True
+                if matagiSujiEarly:
+                    wait['combos'] *= GS_C_ccw_matagiSujiEarly
+                elif matagiSujiRiichi:
+                    wait['combos'] *= GS_C_ccw_matagiSujiRiichi
             elif honorTankiShanpon:
                 wait['combos'] *= GS_C_ccw_honorTankiShanpon
             elif nonHonorTankiShanpon:

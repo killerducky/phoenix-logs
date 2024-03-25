@@ -1,5 +1,5 @@
 from log_hand_analyzer import LogHandAnalyzer
-from analysis_utils import GetDora, convertTile, yaku_names, convertHandToTenhouString
+from analysis_utils import GetDora, convertTile, yaku_names, convertHandToTenhouString, convertHand
 from collections import defaultdict, Counter
 from ukeire import calculateUkeire
 from shanten import calculateMinimumShanten
@@ -13,20 +13,22 @@ import math, os, sys, random, pickle
 #  5000  29082
 
 # Best entropy and settings so far:
-GS_C_ccw_bestEntropy = 0.25293207211789676
+GS_C_ccw_bestEntropy = 0.25286634704921196
 # penchan is the anchor at 1
-GS_C_ccw_ryanmen = 3.8
+GS_C_ccw_ryanmen = 3.7
 GS_C_ccw_honorTankiShanpon = 1.9
 GS_C_ccw_nonHonorTankiShanpon = 1.1
 GS_C_ccw_kanchan = 0.275
 GS_C_ccw_riichiSujiTrap = 11        # Applies after GS_C_ccw_kanchan
+GS_C_ccw_uraSuji = 1.2
 
 # Search for better settings
-GS_C_ccw_ryanmen = 3.8               # worse: 3.7, 3.9
+GS_C_ccw_ryanmen = 3.7               # worse: 3.6, 3.8
 GS_C_ccw_honorTankiShanpon = 1.9     # worse: 1.8, 2.0
 GS_C_ccw_nonHonorTankiShanpon = 1.1  # worse: 1.0, 1.2
 GS_C_ccw_kanchan = 0.275             # worse: 0.27, 0.28
 GS_C_ccw_riichiSujiTrap = 11         # worse: 10, 12
+GS_C_ccw_uraSuji = 1.2               # worse: 1.1, 1.3
 
 def generateWaits():
     waitsArray = []
@@ -119,9 +121,10 @@ class WaitEstimator(LogHandAnalyzer):
             with open("ukeire_cache.pickle", "rb") as fp: self.calculateUkeireCache = pickle.load(fp)
         self.calculateUkeireCacheDirty = False
         print('params: ', GS_C_ccw_ryanmen, GS_C_ccw_honorTankiShanpon, 
-              GS_C_ccw_nonHonorTankiShanpon, GS_C_ccw_kanchan, GS_C_ccw_riichiSujiTrap)
+              GS_C_ccw_nonHonorTankiShanpon, GS_C_ccw_kanchan, GS_C_ccw_riichiSujiTrap, GS_C_ccw_uraSuji)
 
-    def calcCombos(self, riichiPidx, genbutsu, seen, riichiTile):
+    def calcCombos(self, riichiPidx, genbutsu, seen, discardsIncludingRiichiTile):
+        riichiTile = discardsIncludingRiichiTile[-1]
         waitsArray = generateWaits()
         heroUnseenTiles = Counter({i: 4 for i in range(1,38)})
         heroUnseenTiles -= seen
@@ -155,6 +158,13 @@ class WaitEstimator(LogHandAnalyzer):
             nonHonorTankiShanpon = wait['type'] in ['shanpon','tanki'] and wait['tiles'][0] < 30
             if wait['type'] in ['ryanmen']:
                 wait['combos'] *= GS_C_ccw_ryanmen
+                uraSuji2 = False
+                for discard in discardsIncludingRiichiTile:
+                    if discard in wait['tiles']: continue
+                    for waitTile in wait['tiles']:
+                        if discard%10 >=4 and discard%10 <=6 and abs(discard - waitTile) == 2:
+                            uraSuji2 = True
+                if uraSuji2: wait['combos'] *= GS_C_ccw_uraSuji
             elif honorTankiShanpon:
                 wait['combos'] *= GS_C_ccw_honorTankiShanpon
             elif nonHonorTankiShanpon:
@@ -163,8 +173,8 @@ class WaitEstimator(LogHandAnalyzer):
                 wait['combos'] *= GS_C_ccw_kanchan
                 if (riichiTile%10)>=4 and (riichiTile%10) <=6 and abs(wait['waitsOn'][0] - riichiTile) == 3:
                     wait['combos'] *= GS_C_ccw_riichiSujiTrap
-                    # if wait['waitsOn'][0] in self.riichi_ukeire[riichiPidx]:
-                    #     print(f'rst {riichiTile} {self.riichi_ukeire[riichiPidx]}  https://tenhou.net/0/?log={self.round_key}')
+                    #if wait['waitsOn'][0] in self.riichi_ukeire[riichiPidx]:
+                    #    print(f'rst {riichiTile} {self.riichi_ukeire[riichiPidx]} {convertHandToTenhouString(self.hands[riichiPidx])} https://tenhou.net/0/?log={self.round_key}')
             combos['all'] += wait['combos']
             if not wait['type'] in comboTypes:
                 comboTypes[wait['type']] = 0
@@ -232,8 +242,7 @@ class WaitEstimator(LogHandAnalyzer):
                     for t in call[1:]:
                         seen[t] += 1
             # print(f'{self.discards[riichiPidx]} {len(self.discards_at_riichi[riichiPidx])} https://tenhou.net/0/?log={self.round_key}' )
-            # print(f'{self.discards[riichiPidx][len(self.discards_at_riichi[riichiPidx])]}')
-            combos = self.calcCombos(riichiPidx, self.genbutsu[riichiPidx], seen, self.discards[riichiPidx][len(self.discards_at_riichi[riichiPidx])])
+            combos = self.calcCombos(riichiPidx, self.genbutsu[riichiPidx], seen, self.discards_at_riichi[riichiPidx])
             debug = True
             debug = False
             if debug: print('tenpai hand:', convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
@@ -293,8 +302,8 @@ class WaitEstimator(LogHandAnalyzer):
     def RiichiCalled(self, who, step, element):
         super().RiichiCalled(who, step, element)
         if step == 1:
-            self.discards_at_riichi[who] = self.discards[who].copy()
             return
+        self.discards_at_riichi[who] = self.discards[who].copy()
         # print('r dis', who, self.discards_at_riichi, self.discards)
         # print('r hand', who, convertHandToTenhouString(self.hands[who]))
         [value, tiles] = self.calculateUkeire(who)

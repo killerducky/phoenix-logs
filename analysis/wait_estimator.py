@@ -16,19 +16,19 @@ import math, os, sys, random, pickle
 # Best entropy and settings so far:
 penchan = 1.0
 GS_C_ccw = {
-    'bestEntropy': 0.2524776574830301,
+    'bestEntropy': 0.2524742098320797,
     # penchan is the anchor at 1
     'ryanmen': 3.5/penchan,
     'honorTankiShanpon': 1.7/penchan,
     'nonHonorTankiShanpon': 1.0/penchan,
     'kanchan': 0.21/penchan,
     'kanchanRiichiSujiTrap': 2.6/penchan,
-    'uraSuji': 1.2,
+    'uraSuji': 1.3,
     'matagiSujiEarly': 0.6,
     'matagiSujiRiichi': 1.2,
 }
 
-penchan = 1.0  # best
+penchan = 1.0
 # Search for better settings
 GS_C_ccw = {
     'bestEntropy': GS_C_ccw['bestEntropy'],
@@ -37,9 +37,9 @@ GS_C_ccw = {
     'nonHonorTankiShanpon': 1.0/penchan,   # worse: 
     'kanchan': 0.21/penchan,               # worse: 
     'kanchanRiichiSujiTrap': 2.6/penchan,  # worse: 
-    'uraSuji': 1.2,                        # worse: 
-    'matagiSujiEarly': 0.6,                # worse: 
-    'matagiSujiRiichi': 1.2,               # worse: 
+    'uraSuji': 1.3,                        # worse: 1.2, 1.4
+    'matagiSujiEarly': 0.6,                # worse: 0.5, 0.7
+    'matagiSujiRiichi': 1.2,               # worse: 1.1, 1.3
 }
 
 def generateWaits():

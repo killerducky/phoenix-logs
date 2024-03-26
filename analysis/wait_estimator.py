@@ -16,7 +16,7 @@ import math, os, sys, random, pickle
 # Best entropy and settings so far:
 penchan = 1.0
 GS_C_ccw = {
-    'bestEntropy': 0.2524742098320797,
+    'bestEntropy': 0.25240342152392414,
     # penchan is the anchor at 1
     'ryanmen': 3.5/penchan,
     'honorTankiShanpon': 1.7/penchan,
@@ -26,6 +26,7 @@ GS_C_ccw = {
     'uraSuji': 1.3,
     'matagiSujiEarly': 0.6,
     'matagiSujiRiichi': 1.2,
+    'doraGreed': 1.2,
 }
 
 penchan = 1.0
@@ -40,6 +41,7 @@ GS_C_ccw = {
     'uraSuji': 1.3,                        # worse: 1.2, 1.4
     'matagiSujiEarly': 0.6,                # worse: 0.5, 0.7
     'matagiSujiRiichi': 1.2,               # worse: 1.1, 1.3
+    'doraGreed': 1.2,                      # worse: 1.1, 1.3
 }
 
 def generateWaits():
@@ -199,6 +201,12 @@ class WaitEstimator(LogHandAnalyzer):
                     wait['combos'] *= GS_C_ccw['kanchanRiichiSujiTrap']
                 else:
                     wait['combos'] *= GS_C_ccw['kanchan']
+            doraInvolved = False
+            for tile in wait['tiles']+wait['waitsOn']:
+                if tile == self.dora[0]:
+                    doraInvolved = True
+            if doraInvolved:
+                wait['combos'] *= GS_C_ccw['doraGreed']
             combos['all'] += wait['combos']
             if not wait['type'] in comboTypes:
                 comboTypes[wait['type']] = 0

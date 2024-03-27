@@ -16,7 +16,7 @@ import math, os, sys, random, pickle
 # Best entropy and settings so far:
 penchan = 1.0
 GS_C_ccw = {
-    'bestEntropy': 0.25240342152392414,
+    'bestEntropy': 0.25240342152392414,  # -l 5000
     # penchan is the anchor at 1
     'ryanmen': 3.5/penchan,
     'honorTankiShanpon': 1.7/penchan,
@@ -134,6 +134,7 @@ class WaitEstimator(LogHandAnalyzer):
         if os.path.exists("ukeire_cache.pickle"):
             with open("ukeire_cache.pickle", "rb") as fp: self.calculateUkeireCache = pickle.load(fp)
         self.calculateUkeireCacheDirty = False
+        self.GS_C_ccw = GS_C_ccw
         print('params: ', GS_C_ccw)
 
     def calcCombos(self, riichiPidx, genbutsu, seen, discardsIncludingRiichiTile):
@@ -224,12 +225,6 @@ class WaitEstimator(LogHandAnalyzer):
     def RoundStarted(self, init):
         super().RoundStarted(init)
         self.round_key = f'{self.current_log_id} {init.attrib["seed"]}'
-        # print('current round: ', round_key)
-        if self.round_key in self.uniq_rounds:
-            print('error duplicate round: ', self.round_key) # I had a bug and thought there were dups...
-            raise
-        else:
-            self.uniq_rounds.add(self.round_key)
         self.tsumogiri = [0,0,0,0]
         self.first_discards = [0,0,0,0]
         self.dora_discarded = [0,0,0,0]
@@ -286,11 +281,21 @@ class WaitEstimator(LogHandAnalyzer):
                 q_x = 0 if tmpTile not in combos else combos[tmpTile]['all']/combos['all']
                 if not tmpTile in self.riichi_ukeire[riichiPidx]:
                     q_x = 1 - q_x
+                if q_x > 1:
+                    q_x = 1 # Weird weigths can do this because of hacky Shanpon implementation
+                if q_x <=0:
+                    q_x = 0.00001
                 if q_x == 0:
                     print(f'error in https://tenhou.net/0/?log={self.round_key}')
                     print('tenpai hand:', riichiPidx, convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
                     print(combo2str(tmpTile, combos), 1 if tmpTile in self.riichi_ukeire[riichiPidx] else 0)
-                entropy = -math.log2(q_x)
+                try:
+                    entropy = -math.log2(q_x)
+                except:
+                    print(f'error in https://tenhou.net/0/?log={self.round_key}')
+                    print('tenpai hand:', riichiPidx, convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
+                    print(q_x, combo2str(tmpTile, combos), 1 if tmpTile in self.riichi_ukeire[riichiPidx] else 0)
+                    entropy = 0
                 if debug:
                     if not tmpTile in self.riichi_ukeire[riichiPidx]:
                         print(f'  tmpTile, q, entropy {tmpTile} {q_x:.3f} {entropy:.1f}')

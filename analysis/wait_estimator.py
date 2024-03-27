@@ -16,7 +16,8 @@ import math, os, sys, random, pickle
 # Best entropy and settings so far:
 penchan = 1.0
 GS_C_ccw = {
-    'bestEntropy': 0.25240342152392414,  # -l 5000
+  # 'bestEntropy': 0.25240342152392414,  # -l 5000
+    'bestEntropy': 0.25237294051555714,  # -l 5000
     # penchan is the anchor at 1
     'ryanmen': 3.5/penchan,
     'honorTankiShanpon': 1.7/penchan,
@@ -27,6 +28,7 @@ GS_C_ccw = {
     'matagiSujiEarly': 0.6,
     'matagiSujiRiichi': 1.2,
     'doraGreed': 1.2,
+    'akaDiscard': 0.19,
 }
 
 penchan = 1.0
@@ -42,6 +44,7 @@ GS_C_ccw = {
     'matagiSujiEarly': 0.6,                # worse: 0.5, 0.7
     'matagiSujiRiichi': 1.2,               # worse: 1.1, 1.3
     'doraGreed': 1.2,                      # worse: 1.1, 1.3
+    'akaDiscard': 0.19,                    # worse: 0.18, 0.2
 }
 
 def generateWaits():
@@ -137,7 +140,23 @@ class WaitEstimator(LogHandAnalyzer):
         self.GS_C_ccw = GS_C_ccw
         print('params: ', GS_C_ccw)
 
-    def calcCombos(self, riichiPidx, genbutsu, seen, discardsIncludingRiichiTile):
+    def RoundStarted(self, init):
+        super().RoundStarted(init)
+        self.round_key = f'{self.current_log_id} {init.attrib["seed"]}'
+        self.tsumogiri = [0,0,0,0]
+        self.first_discards = [0,0,0,0]
+        self.dora_discarded = [0,0,0,0]
+        self.discards_is_aka = [[],[],[],[]]
+        self.discards_at_riichi = [[],[],[],[]]
+        self.riichi_ukeire= [[],[],[],[]]
+        self.genbutsu=[set(), set(), set(), set()]
+        self.furiten_riichi = [0,0,0,0]
+        self.init = init
+        self.dora_indicator = [convertTile(init.attrib["seed"].split(",")[5])]
+        self.dora = [GetDora(self.dora_indicator[0])]
+        self.round_entropy_sums = []
+
+    def calcCombos(self, riichiPidx, genbutsu, seen, discardsIncludingRiichiTile, discardsIsAka):
         riichiTile = discardsIncludingRiichiTile[-1]
         waitsArray = generateWaits()
         heroUnseenTiles = Counter({i: 4 for i in range(1,38)})
@@ -202,12 +221,23 @@ class WaitEstimator(LogHandAnalyzer):
                     wait['combos'] *= GS_C_ccw['kanchanRiichiSujiTrap']
                 else:
                     wait['combos'] *= GS_C_ccw['kanchan']
+
             doraInvolved = False
             for tile in wait['tiles']+wait['waitsOn']:
                 if tile == self.dora[0]:
                     doraInvolved = True
             if doraInvolved:
                 wait['combos'] *= GS_C_ccw['doraGreed']
+
+            for idx, discard in enumerate(discardsIncludingRiichiTile):
+                akaInvolved = False
+                if discardsIsAka[idx]:
+                    for tile in wait['tiles']+wait['waitsOn']:
+                        if tile == discard:
+                            akaInvolved = True
+            if akaInvolved:
+                wait['combos'] *= GS_C_ccw['akaDiscard']
+
             combos['all'] += wait['combos']
             if not wait['type'] in comboTypes:
                 comboTypes[wait['type']] = 0
@@ -221,21 +251,6 @@ class WaitEstimator(LogHandAnalyzer):
                 combos[t]['types'].append(wait)
         return combos
 
-
-    def RoundStarted(self, init):
-        super().RoundStarted(init)
-        self.round_key = f'{self.current_log_id} {init.attrib["seed"]}'
-        self.tsumogiri = [0,0,0,0]
-        self.first_discards = [0,0,0,0]
-        self.dora_discarded = [0,0,0,0]
-        self.discards_at_riichi = [[],[],[],[]]
-        self.riichi_ukeire= [[],[],[],[]]
-        self.genbutsu=[set(), set(), set(), set()]
-        self.furiten_riichi = [0,0,0,0]
-        self.init = init
-        self.dora_indicator = [convertTile(init.attrib["seed"].split(",")[5])]
-        self.dora = [GetDora(self.dora_indicator[0])]
-        self.round_entropy_sums = []
 
     def RoundEnded(self, init):
         super().RoundEnded(init)
@@ -253,6 +268,9 @@ class WaitEstimator(LogHandAnalyzer):
     def TileDiscarded(self, who, tile, tsumogiri, element):
         super().TileDiscarded(who, tile, tsumogiri, element)
 
+        discard_is_aka = tile < 30 and tile % 10 == 5 and int(element.tag[1:]) % 4 == 0
+        self.discards_is_aka[who].append(discard_is_aka)
+
         for riichiPidx in range(4):
             # Note: Skipping furiten cases
             if not self.riichi_ukeire[riichiPidx] or riichiPidx == who or self.furiten_riichi[riichiPidx]:
@@ -269,7 +287,7 @@ class WaitEstimator(LogHandAnalyzer):
                     for t in call[1:]:
                         seen[t] += 1
             # print(f'{self.discards[riichiPidx]} {len(self.discards_at_riichi[riichiPidx])} https://tenhou.net/0/?log={self.round_key}' )
-            combos = self.calcCombos(riichiPidx, self.genbutsu[riichiPidx], seen, self.discards_at_riichi[riichiPidx])
+            combos = self.calcCombos(riichiPidx, self.genbutsu[riichiPidx], seen, self.discards_at_riichi[riichiPidx], self.discards_is_aka[riichiPidx])
             debug = True
             debug = False
             if debug: print('tenpai hand:', convertHandToTenhouString(self.hands[riichiPidx]), self.riichi_ukeire[riichiPidx], self.genbutsu[riichiPidx])
